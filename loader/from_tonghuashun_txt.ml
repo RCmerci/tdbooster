@@ -1,20 +1,6 @@
 open Core
 
-type raw_data =
-  { time: Time.t
-  ; opening: float
-  ; high: float
-  ; low: float
-  ; closing: float
-  ; rose: float
-  ; amplitude: float
-  ; total_hands: int64
-  ; amount: int64
-  ; exchange_hands: float
-  ; num_of_deal: int64 }
-[@@deriving show]
-
-let parse_line line : raw_data option =
+let parse_line line : Type.raw_data option =
   let elems =
     String.split line ~on:' ' |> List.filter ~f:(fun s -> String.length s > 0)
   in
@@ -39,9 +25,13 @@ let parse_line line : raw_data option =
       let high = Float.of_string high_ in
       let low = Float.of_string low_ in
       let closing = Float.of_string closing_ in
-      let rose = Float.of_string (String.chop_suffix_exn rose_ ~suffix:"%") in
+      let rose =
+        try Float.of_string (String.chop_suffix_exn rose_ ~suffix:"%")
+        with _ -> 0.
+      in
       let amplitude =
-        Float.of_string (String.chop_suffix_exn amplitude_ ~suffix:"%")
+        try Float.of_string (String.chop_suffix_exn amplitude_ ~suffix:"%")
+        with _ -> 0.
       in
       let total_hands =
         Int64.of_string
@@ -72,14 +62,14 @@ let parse_line line : raw_data option =
   | _ ->
       None
 
-let read_from_string_lines lines : raw_data list =
+let read_from_string_lines lines : Type.raw_data list =
   match lines with
   | _headline :: t ->
       List.map t ~f:parse_line |> List.filter_opt
   | _ ->
       failwith "empty data"
 
-let read_from_file file : raw_data list =
+let read_from_file file : Type.raw_data list =
   let lines = In_channel.read_lines file in
   match lines with
   | _headline :: _t ->
