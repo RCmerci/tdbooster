@@ -59,14 +59,3 @@ let unify_week (data_list : Loader.Type.raw_data list) =
 
 let unify_month (data_list : Loader.Type.raw_data list) =
   unify (Month_k.month_k data_list)
-
-let%test "test-unify_day" =
-  let datal =
-    Loader.From_tonghuashun_txt.read_from_string_lines
-      (String.split_lines Testdata.Data.data)
-  in
-  let derived_day = Option.value_exn (unify_month datal) in
-  let derived_day_1000 = List.sub (List.rev derived_day) ~pos:0 ~len:20 in
-  Debug.eprint
-    (List.to_string ~f:(fun e -> Type.show_derived_data e) derived_day_1000) ;
-  false

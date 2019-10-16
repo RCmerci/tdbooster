@@ -3,15 +3,18 @@ open Option.Monad_infix
 
 let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
     =
-  List.fold data_list ~init:(8, None, [])
-    ~f:(fun (last_day_of_week, (week_data : Loader.Type.raw_data option), r)
+  List.fold data_list ~init:(0, None, [])
+    ~f:(fun (last_week_num, (week_data : Loader.Type.raw_data option), r)
        current
        ->
       assert (Option.is_some current.day_of_week) ;
-      let day_of_week = Option.value_exn current.day_of_week in
-      if last_day_of_week >= day_of_week then
+      let week_num =
+        Date.week_number
+          (Date.of_time current.time ~zone:(Time.Zone.of_utc_offset ~hours:8))
+      in
+      if last_week_num <> week_num then
         (* new week *)
-        ( day_of_week
+        ( week_num
         , Some
             { time= current.time
             ; day_of_week= None
@@ -29,7 +32,7 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
         , week_data :: r )
       else
         (* continue with lastday *)
-        ( day_of_week
+        ( week_num
         , ( week_data
           >>= fun (week_data' : Loader.Type.raw_data) ->
           Some
@@ -51,8 +54,4 @@ let%test "test-week_k" =
       (String.split_lines Testdata.Data.data)
   in
   let week_data_list = week_k datal in
-  let week_data_500 = List.nth_exn week_data_list 500 in
-  week_data_500.opening = 111.1
-  && week_data_500.closing = 105.06
-  && week_data_500.high = 111.11
-  && week_data_500.low = 99.43
+  List.for_all week_data_list ~f:(fun e -> e.days < 6)
