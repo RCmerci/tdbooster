@@ -2,7 +2,6 @@ open Core
 
 type raw_data =
   { time: Time.t (* 日k:当天, 周k:周第一天, 月k:月第一天 *)
-  ; day_of_week: int option (* 日k: 周几, 周k,月k 忽略这个字段 *)
   ; opening: float (* 开盘 *)
   ; high: float (* 最高 *)
   ; low: float (* 最低 *)

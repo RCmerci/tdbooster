@@ -7,7 +7,6 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
     ~f:(fun (last_week_num, (week_data : Loader.Type.raw_data option), r)
        current
        ->
-      assert (Option.is_some current.day_of_week) ;
       let week_num =
         Date.week_number
           (Date.of_time current.time ~zone:(Time.Zone.of_utc_offset ~hours:8))
@@ -17,7 +16,6 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
         ( week_num
         , Some
             { time= current.time
-            ; day_of_week= None
             ; opening= current.opening
             ; closing= current.closing
             ; high= current.high

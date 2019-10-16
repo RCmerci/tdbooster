@@ -72,7 +72,6 @@ let parse_line line : Type.raw_data option =
       else
         Some
           { time
-          ; day_of_week
           ; opening
           ; high
           ; low

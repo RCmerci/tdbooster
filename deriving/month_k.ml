@@ -16,7 +16,6 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
           ( Some month
           , Some
               { time= current.time
-              ; day_of_week= None
               ; opening= current.opening
               ; closing= current.closing
               ; high= current.high
@@ -34,7 +33,6 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
             Some month
           , Some
               { time= current.time
-              ; day_of_week= None
               ; opening= current.opening
               ; closing= current.closing
               ; high= current.high
