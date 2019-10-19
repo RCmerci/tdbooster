@@ -1,54 +1,124 @@
 open Core
 
-type 'a t = {current: int; k_list: 'a list; k_list_len: int}
+module type Data_with_timestamp = sig
+  type t
 
-let create k_list =
-  if List.is_empty k_list then None
-  else Some {current= 0; k_list; k_list_len= List.length k_list}
+  val date : t -> Date.t
+end
 
-let create_exn k_list =
-  match create k_list with
-  | None ->
-      invalid_arg "Cursor.create_exn"
-  | Some v ->
-      v
+module Make (Data : Data_with_timestamp) = struct
+  type t = {current: int; k_list: Data.t list; k_list_len: int}
 
-let move (t : 'a t) n : 'a t * int =
-  let dst = t.current + n in
-  if dst <= 0 then ({t with current= 0}, -t.current)
-  else if dst >= t.k_list_len then
-    ({t with current= t.k_list_len - 1}, t.k_list_len - 1 - t.current)
-  else ({t with current= dst}, n)
+  let create k_list =
+    if List.is_empty k_list then None
+    else Some {current= 0; k_list; k_list_len= List.length k_list}
 
-let left t n =
-  if n < 0 then []
-  else
-    let left_index = if t.current - n >= 0 then t.current - n else 0 in
-    List.slice t.k_list left_index t.current
+  let create_exn k_list =
+    match create k_list with
+    | None ->
+        invalid_arg "Cursor.create_exn"
+    | Some v ->
+        v
 
-let right t n =
-  if n < 0 then []
-  else
-    let n' =
-      if t.current + n < t.k_list_len then n else t.k_list_len - 1 - t.current
+  let move t n : t * int =
+    let dst = t.current + n in
+    if dst <= 0 then ({t with current= 0}, -t.current)
+    else if dst >= t.k_list_len then
+      ({t with current= t.k_list_len - 1}, t.k_list_len - 1 - t.current)
+    else ({t with current= dst}, n)
+
+  let left t n =
+    if n < 0 then []
+    else
+      let left_index = if t.current - n >= 0 then t.current - n else 0 in
+      List.slice t.k_list left_index t.current
+
+  let right t n =
+    if n < 0 then []
+    else
+      let n' =
+        if t.current + n < t.k_list_len then n
+        else t.k_list_len - 1 - t.current
+      in
+      List.sub t.k_list ~pos:(t.current + 1) ~len:n'
+
+  let current t = List.nth_exn t.k_list t.current
+
+  (*
+     dst >= date
+     examples:
+     goto_date [1;2;4] 3 = Some 4
+     goto_date [1;2;3] 3 = Some 3
+     goto_date [2;3] 1 = Some 2
+     goto_date [1;2;3] 4 = None
+ *)
+  let goto_date t date =
+    let diff = Date.diff date (Data.date (current t)) in
+    let t', _ = move t diff in
+    let rec tuning t =
+      match Date.compare (Data.date (current t)) date with
+      | 0 ->
+          Some t
+      | a when a > 0 ->
+          let left_one, n = move t (-1) in
+          if n = 0 then Some t
+          else if Data.date (current left_one) < date then Some t
+          else tuning left_one
+      | _ ->
+          let right_one, n = move t 1 in
+          if n = 0 then None
+          else if Data.date (current right_one) > date then Some right_one
+          else tuning right_one
     in
-    List.sub t.k_list ~pos:(t.current + 1) ~len:n'
-
-let current t = List.nth_exn t.k_list t.current
+    tuning t'
+end
 
 let%test_unit "test-cursor" =
-  let t = create_exn [1] in
-  let t1, _ = move t 1 in
-  let t2 = create_exn [1; 2; 3] in
-  left t1 1 |> ignore ;
-  left t1 0 |> ignore ;
-  right t1 1 |> ignore ;
-  right t1 0 |> ignore ;
-  left t2 0 |> ignore ;
-  left t2 1 |> ignore ;
-  left t2 2 |> ignore ;
-  left t2 3 |> ignore ;
-  right t2 0 |> ignore ;
-  right t2 1 |> ignore ;
-  right t2 2 |> ignore ;
-  right t2 3 |> ignore
+  let module D = struct
+    type t = Time.t
+
+    let date t = Date.of_time t ~zone:(Time.Zone.of_utc_offset ~hours:8)
+  end in
+  let module C = Make (D) in
+  let now = Time.now () in
+  let now_1 = Time.add now (Time.Span.of_sec 1.) in
+  let now_2 = Time.add now (Time.Span.of_sec 2.) in
+  let now_3 = Time.add now (Time.Span.of_sec 3.) in
+  let t = C.create_exn [now] in
+  let t1, _ = C.move t 1 in
+  let t2 = C.create_exn [now; now_1; now_2; now_3] in
+  C.left t1 1 |> ignore ;
+  C.left t1 0 |> ignore ;
+  C.right t1 1 |> ignore ;
+  C.right t1 0 |> ignore ;
+  C.left t2 0 |> ignore ;
+  C.left t2 1 |> ignore ;
+  C.left t2 2 |> ignore ;
+  C.left t2 3 |> ignore ;
+  C.right t2 0 |> ignore ;
+  C.right t2 1 |> ignore ;
+  C.right t2 2 |> ignore ;
+  C.right t2 3 |> ignore
+
+let%test "test-cursor-goto_date" =
+  let module D = struct
+    type t = Date.t
+
+    let date t = t
+  end in
+  let module C = Make (D) in
+  let days =
+    List.map ~f:Date.of_string
+      ["2012-11-01"; "2012-12-02"; "2012-12-04"; "2012-12-05"]
+  in
+  let data = C.create_exn days in
+  let dst1 =
+    Option.value_exn (C.goto_date data (Date.of_string "2012-12-03"))
+  in
+  let dst2 =
+    Option.value_exn (C.goto_date data (Date.of_string "2011-11-11"))
+  in
+  let dst3 = C.goto_date data (Date.of_string "2012-12-06") in
+  C.current dst1 = Date.of_string "2012-12-04"
+  && C.current dst2 = Date.of_string "2012-11-01"
+  && Option.is_none dst3

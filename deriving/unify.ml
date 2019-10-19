@@ -2,7 +2,7 @@ open Core
 open Option.Monad_infix
 
 let unify (data_list : Loader.Type.raw_data list) :
-    Type.derived_data list option =
+    Type.Derived_data.t list option =
   let timelist, ema5 = Ema.ema 5 data_list |> List.unzip in
   let _, ema10 = Ema.ema 10 data_list |> List.unzip in
   let _, ema12 = Ema.ema 12 data_list |> List.unzip in
@@ -12,7 +12,7 @@ let unify (data_list : Loader.Type.raw_data list) :
   Macd.macd_dif_dea data_list
   >>= fun macd_dif_dea ->
   let rec aux timelist ema5 ema10 ema12 ema14 ema26 ema60 macd_dif_dea
-      data_list (r : Type.derived_data list) =
+      data_list (r : Type.Derived_data.t list) =
     match
       ( timelist
       , ema5
