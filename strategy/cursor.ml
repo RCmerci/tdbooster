@@ -4,10 +4,14 @@ module type Data_with_timestamp = sig
   type t
 
   val date : t -> Date.t
+
+  val to_string : t -> string
 end
 
 module Make (Data : Data_with_timestamp) = struct
   type t = {current: int; k_list: Data.t list; k_list_len: int}
+
+  let to_string t = List.nth_exn t.k_list t.current |> Data.to_string
 
   let create k_list =
     if List.is_empty k_list then None
@@ -71,6 +75,19 @@ module Make (Data : Data_with_timestamp) = struct
           else tuning right_one
     in
     tuning t'
+
+  (* [t, end'] *)
+  let fold ?end' t ~f ~init =
+    let rec aux r t =
+      match end' with
+      | Some end_t when end_t.current < t.current ->
+          r
+      | _ -> (
+          let r' = f r t in
+          let t', n = move t 1 in
+          match n with 0 -> r' | _ -> aux r' t' )
+    in
+    aux init t
 end
 
 let%test_unit "test-cursor" =
@@ -78,6 +95,8 @@ let%test_unit "test-cursor" =
     type t = Time.t
 
     let date t = Date.of_time t ~zone:(Time.Zone.of_utc_offset ~hours:8)
+
+    let to_string _ = ""
   end in
   let module C = Make (D) in
   let now = Time.now () in
@@ -105,6 +124,8 @@ let%test "test-cursor-goto_date" =
     type t = Date.t
 
     let date t = t
+
+    let to_string _ = ""
   end in
   let module C = Make (D) in
   let days =
@@ -122,3 +143,5 @@ let%test "test-cursor-goto_date" =
   C.current dst1 = Date.of_string "2012-12-04"
   && C.current dst2 = Date.of_string "2012-11-01"
   && Option.is_none dst3
+
+module Data_cursor = Make (Deriving.Type.Derived_data)

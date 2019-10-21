@@ -16,4 +16,6 @@ module Derived_data = struct
   [@@deriving show]
 
   let date t = Date.of_time t.time ~zone:(Time.Zone.of_utc_offset ~hours:8)
+
+  let to_string = show
 end
