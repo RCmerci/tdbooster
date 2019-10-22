@@ -42,22 +42,32 @@ let sell ~buy_c day_k _week_k _month_k =
          ^ ":"
          ^ string_of_float v.raw_data.low )) ;
   let day_c = Data_cursor.create_exn day_k in
-  List.find_mapi low_list ~f:(fun ind c ->
-      let low_price = (Data_cursor.current c).raw_data.low in
-      let date =
-        Date.of_time (Data_cursor.current c).time
-          ~zone:(Time.Zone.of_utc_offset ~hours:8)
-      in
-      let day_c' = Option.value_exn (Data_cursor.goto_date day_c date) in
-      Data_cursor.find
-        ?end':(List.nth low_list (ind + 1))
-        day_c'
-        ~f:(fun e ->
-          let b = (Data_cursor.current e).raw_data.low < low_price *. 0.98 in
-          Debug.eprintf "%s:%f, low_price: %f"
-            (Time.to_string (Data_cursor.current e).time)
-            (Data_cursor.current e).raw_data.low low_price ;
-          b ) )
+  match low_list with
+  | [] ->
+      (* 买入时候价格的85%作为第一个低点(在发现第一个周k低点之前) *)
+      Data_cursor.find buy_c ~f:(fun c ->
+          (Data_cursor.current c).raw_data.low
+          < 0.85 *. (Data_cursor.current buy_c).raw_data.low )
+  | _ ->
+      (* TODO: 检查第一个周k低点之前的价格是否有低于买入价格的85% *)
+      List.find_mapi low_list ~f:(fun ind c ->
+          let low_price = (Data_cursor.current c).raw_data.low in
+          let date =
+            Date.of_time (Data_cursor.current c).time
+              ~zone:(Time.Zone.of_utc_offset ~hours:8)
+          in
+          let day_c' = Option.value_exn (Data_cursor.goto_date day_c date) in
+          Data_cursor.find
+            ?end':(List.nth low_list (ind + 1))
+            day_c'
+            ~f:(fun e ->
+              let b =
+                (Data_cursor.current e).raw_data.low < low_price *. 0.98
+              in
+              Debug.eprintf "%s:%f, low_price: %f"
+                (Time.to_string (Data_cursor.current e).time)
+                (Data_cursor.current e).raw_data.low low_price ;
+              b ) )
 
 let%test_module _ =
   ( module struct
@@ -76,7 +86,7 @@ let%test_module _ =
       let buy_c =
         Option.value_exn
           (Data_cursor.goto_date c
-             (Date.of_string "2016-05-04") (* (Date.of_string "2012-04-26") *))
+             (Date.of_string "2019-10-10") (* (Date.of_string "2012-04-26") *))
       in
       let sell_c = Option.value_exn (sell ~buy_c day_k week_k month_k) in
       Debug.eprint (Data_cursor.to_string buy_c) ;
