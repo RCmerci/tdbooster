@@ -88,6 +88,19 @@ module Make (Data : Data_with_timestamp) = struct
           match n with 0 -> r' | _ -> aux r' t' )
     in
     aux init t
+
+  let find ?end' t ~f =
+    let rec aux t =
+      match end' with
+      | Some end_t when end_t.current < t.current ->
+          None
+      | _ -> (
+          if f t then Some t
+          else
+            let t', n = move t 1 in
+            match n with 0 -> None | _ -> aux t' )
+    in
+    aux t
 end
 
 let%test_unit "test-cursor" =
