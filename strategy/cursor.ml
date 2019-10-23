@@ -48,6 +48,10 @@ module Make (Data : Data_with_timestamp) = struct
 
   let current t = List.nth_exn t.k_list t.current
 
+  let date t = Data.date (current t)
+
+  let datestring t = Date.to_string (date t)
+
   (*
      dst >= date
      examples:
@@ -101,6 +105,8 @@ module Make (Data : Data_with_timestamp) = struct
             match n with 0 -> None | _ -> aux t' )
     in
     aux t
+
+  let to_k_list t = t.k_list
 end
 
 let%test_unit "test-cursor" =
