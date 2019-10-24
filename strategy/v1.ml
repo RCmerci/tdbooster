@@ -6,11 +6,9 @@ open Option.Monad_infix
 
 type ctx = Data_cursor.t
 
-let buy_c_low_price buy_c =
-  let ratio =
-    if (Data_cursor.current buy_c).raw_data.low < 0. then 1.15 else 0.85
-  in
-  ratio *. (Data_cursor.current buy_c).raw_data.low
+let buy_c_low_price buy_price =
+  let ratio = if buy_price < 0. then 1.15 else 0.85 in
+  ratio *. buy_price
 
 let month_k_buy c _ =
   if just_enter_status_A c then (
@@ -35,7 +33,10 @@ let day_k_buy c ctx =
       in
       match r with None -> Buy_continue None | Some v -> v )
   | Some high_point_c ->
-      if
+      (* 如果90天还没有突破日k高点,则放弃这次入场 *)
+      if Date.diff (Data_cursor.date c) (Data_cursor.date high_point_c) > 90
+      then Buy_quit c
+      else if
         (Data_cursor.current high_point_c).raw_data.high
         < (Data_cursor.current c).raw_data.high
       then (
@@ -45,7 +46,7 @@ let day_k_buy c ctx =
         Buy (c, Some (Data_cursor.current high_point_c).raw_data.high) )
       else Buy_continue (Some high_point_c)
 
-let sell ~buy_c day_k _week_k _month_k =
+let sell ~buy_c ~buy_price day_k _week_k _month_k =
   let last_c, _ = Data_cursor.move buy_c 999999 in
   let low_list =
     week_k_low_point_list ~f:ascending_week_k_high_point_list buy_c last_c
@@ -59,14 +60,15 @@ let sell ~buy_c day_k _week_k _month_k =
   | [] ->
       (* 买入时候价格的85%作为第一个低点(在发现第一个周k低点之前) *)
       Data_cursor.find buy_c ~f:(fun c ->
-          (Data_cursor.current c).raw_data.low < buy_c_low_price buy_c )
-      >>= fun sellc -> Some (sellc, buy_c_low_price buy_c)
+          (Data_cursor.current c).raw_data.low < buy_c_low_price buy_price )
+      >>= fun sellc -> Some (sellc, buy_c_low_price buy_price)
   | h :: _ ->
       Option.first_some
         (* 检查第一个周k低点之前的价格是否有低于买入价格的85% *)
         ( Data_cursor.find ~end':h buy_c ~f:(fun c ->
-              (Data_cursor.current c).raw_data.low < buy_c_low_price buy_c )
-        >>= fun e -> Some (e, buy_c_low_price buy_c) )
+              (Data_cursor.current c).raw_data.low < buy_c_low_price buy_price
+          )
+        >>= fun e -> Some (e, buy_c_low_price buy_price) )
         (* 检查后续低于最近一个周k低点 *)
         (List.find_mapi low_list ~f:(fun ind c ->
              let low_price = (Data_cursor.current c).raw_data.low in
@@ -90,27 +92,3 @@ let sell ~buy_c day_k _week_k _month_k =
                      low_price (ratio *. low_price) (Data_cursor.datestring e) ;
                  b )
              >>= fun sellc -> Some (sellc, low_price *. 0.98) ))
-
-let%test_module _ =
-  ( module struct
-    let datal =
-      Loader.From_tonghuashun_txt.read_from_string_lines
-        (String.split_lines Testdata.Data.data)
-
-    let month_k = Option.value_exn (Deriving.Unify.unify_month datal)
-
-    let week_k = Option.value_exn (Deriving.Unify.unify_week datal)
-
-    let day_k = Option.value_exn (Deriving.Unify.unify_day datal)
-
-    let%test "test-sell" =
-      let c = Data_cursor.create_exn day_k in
-      let buy_c =
-        Option.value_exn
-          (Data_cursor.goto_date c (Date.of_string "2012-04-26"))
-      in
-      let sell_c, _ = Option.value_exn (sell ~buy_c day_k week_k month_k) in
-      Debug.eprint (Data_cursor.to_string buy_c) ;
-      Debug.eprint (Data_cursor.to_string sell_c) ;
-      true
-  end )

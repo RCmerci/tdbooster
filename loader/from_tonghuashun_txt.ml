@@ -6,17 +6,7 @@ let parse_line line : Type.raw_data option =
     String.split line ~on:' ' |> List.filter ~f:(fun s -> String.length s > 0)
   in
   match elems with
-  | [ time_
-    ; opening_
-    ; high_
-    ; low_
-    ; closing_
-    ; rose_
-    ; amplitude_
-    ; total_hands_
-    ; amount_
-    ; exchange_hands_
-    ; num_of_deal_ ] -> (
+  | time_ :: opening_ :: high_ :: low_ :: closing_ :: _t -> (
     try
       let time =
         Time.parse time_ ~fmt:"%Y-%m-%d"
@@ -43,27 +33,27 @@ let parse_line line : Type.raw_data option =
       let high = Float.of_string high_ in
       let low = Float.of_string low_ in
       let closing = Float.of_string closing_ in
-      let rose =
-        try Float.of_string (String.chop_suffix_exn rose_ ~suffix:"%")
-        with _ -> 0.
-      in
-      let amplitude =
-        try Float.of_string (String.chop_suffix_exn amplitude_ ~suffix:"%")
-        with _ -> 0.
-      in
-      let total_hands =
-        Int64.of_string
-          (String.substr_replace_all total_hands_ ~pattern:"," ~with_:"")
-      in
-      let amount =
-        Int64.of_string
-          (String.substr_replace_all amount_ ~pattern:"," ~with_:"")
-      in
-      let exchange_hands = Float.of_string exchange_hands_ in
-      let num_of_deal =
-        Int64.of_string
-          (String.substr_replace_all num_of_deal_ ~pattern:"," ~with_:"")
-      in
+      (* let rose =
+       *   try Float.of_string (String.chop_suffix_exn rose_ ~suffix:"%")
+       *   with _ -> 0.
+       * in
+       * let amplitude =
+       *   try Float.of_string (String.chop_suffix_exn amplitude_ ~suffix:"%")
+       *   with _ -> 0.
+       * in
+       * let total_hands =
+       *   Int64.of_string
+       *     (String.substr_replace_all total_hands_ ~pattern:"," ~with_:"")
+       * in
+       * let amount =
+       *   Int64.of_string
+       *     (String.substr_replace_all amount_ ~pattern:"," ~with_:"")
+       * in
+       * let exchange_hands = Float.of_string exchange_hands_ in
+       * let num_of_deal =
+       *   Int64.of_string
+       *     (String.substr_replace_all num_of_deal_ ~pattern:"," ~with_:"")
+       * in *)
       let days = 1 in
       if Option.is_none day_of_week then (
         Debug.amf [%here] "day_of_week is None on day_k, time: %s"
@@ -76,12 +66,12 @@ let parse_line line : Type.raw_data option =
           ; high
           ; low
           ; closing
-          ; rose
-          ; amplitude
-          ; total_hands
-          ; amount
-          ; exchange_hands
-          ; num_of_deal
+              (* ; rose
+           * ; amplitude
+           * ; total_hands
+           * ; amount
+           * ; exchange_hands
+           * ; num_of_deal *)
           ; days }
     with _ -> None )
   | _ ->

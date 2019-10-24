@@ -3,7 +3,7 @@ open Core
 open Option.Monad_infix
 
 type executorResult =
-  | NoAction
+  | NoAction of Data_cursor.t option (* next date exec should start *)
   | Transaction of
       { buy: Data_cursor.t * float
       ; sell: (Data_cursor.t * float) option }
@@ -14,30 +14,32 @@ type statistics =
   ; duration: int
   ; price_diff: float
   ; buy_price: float
-  ; sell_price: float option }
+  ; sell_price: float option
+  ; percent: float option (* 不计算股价<0的情况 *) }
 [@@deriving show]
 
 let stat r =
   match r with
-  | NoAction ->
+  | NoAction _ ->
       { duration= 0
       ; price_diff= 0.
       ; buy= None
       ; sell= None
       ; buy_price= 0.
-      ; sell_price= None }
+      ; sell_price= None
+      ; percent= None }
   | Transaction tr ->
       let duration =
         match tr.sell with
         | None ->
-            -1
+            0
         | Some (sellc, _) ->
             Date.diff (Data_cursor.date sellc) (Data_cursor.date (fst tr.buy))
       in
       let price_diff =
         match tr.sell with
         | None ->
-            -1.
+            0.
         | Some (_, sellp) ->
             sellp -. snd tr.buy
       in
@@ -51,7 +53,10 @@ let stat r =
       ; duration
       ; price_diff
       ; buy_price= snd tr.buy
-      ; sell_price }
+      ; sell_price
+      ; percent=
+          (if snd tr.buy < 0. then None else Some (price_diff /. snd tr.buy))
+      }
 
 module Make (St : Strategy.Type.Strategy) = struct
   type t = {month_k: Data_cursor.t; week_k: Data_cursor.t; day_k: Data_cursor.t}
@@ -73,56 +78,72 @@ module Make (St : Strategy.Type.Strategy) = struct
     let rec aux f t ctx =
       match f t ctx with
       | Strategy.Type.Buy t' ->
-          Some t'
+          First t'
       | Strategy.Type.Buy_skip_to (ctx', t') ->
           aux f t' ctx'
       | Strategy.Type.Buy_continue ctx' ->
           let t', n = Data_cursor.move t 1 in
-          if n = 0 then None else aux f t' ctx'
+          if n = 0 then Second None else aux f t' ctx'
+      | Strategy.Type.Buy_quit quit_c ->
+          Second (Some quit_c)
     in
     let month_aux = aux St.month_k_buy in
     let week_aux = aux St.week_k_buy in
     let day_aux = aux St.day_k_buy in
-    let result =
-      month_aux t.month_k None
-      >>= fun (result_month_c, _) ->
-      Data_cursor.goto_date t.week_k
-        (Deriving.Type.Derived_data.date (Data_cursor.current result_month_c))
-      >>= fun start_week_c ->
-      week_aux start_week_c None
-      >>= fun (result_week_c, _) ->
-      Data_cursor.goto_date t.day_k
-        (Deriving.Type.Derived_data.date (Data_cursor.current result_week_c))
-      >>= fun start_day_c ->
-      day_aux start_day_c None
-      >>= fun (buy_c, buy_price) ->
-      Some
-        ( buy_price
-        , buy_c
-        , St.sell ~buy_c
-            (Data_cursor.to_k_list t.day_k)
-            (Data_cursor.to_k_list t.week_k)
-            (Data_cursor.to_k_list t.month_k) )
-    in
-    match result with
-    | None ->
-        NoAction
-    | Some (buy_price, buy, sell) ->
-        Transaction {buy= (buy, Option.value_exn buy_price); sell}
+    match month_aux t.month_k None with
+    | Second quit_c ->
+        NoAction quit_c
+    | First (result_month_c, _) ->
+        Option.value_map ~default:(NoAction (Some result_month_c))
+          (Data_cursor.goto_date t.week_k (Data_cursor.date result_month_c))
+          ~f:(fun start_week_c ->
+            match week_aux start_week_c None with
+            | Second quit_c ->
+                NoAction quit_c
+            | First (result_week_c, _) ->
+                Option.value_map ~default:(NoAction (Some result_week_c))
+                  (Data_cursor.goto_date t.day_k
+                     (Data_cursor.date result_week_c))
+                  ~f:(fun start_day_c ->
+                    match day_aux start_day_c None with
+                    | Second quit_c ->
+                        NoAction quit_c
+                    | First (buy_c, buy_price') ->
+                        let buy_price = Option.value_exn buy_price' in
+                        Transaction
+                          { buy= (buy_c, buy_price)
+                          ; sell=
+                              St.sell ~buy_c ~buy_price
+                                (Data_cursor.to_k_list t.day_k)
+                                (Data_cursor.to_k_list t.week_k)
+                                (Data_cursor.to_k_list t.month_k) } ) )
 
   let exec_sequence t =
+    let goto_next_c t next_c =
+      let d = Data_cursor.date next_c in
+      Data_cursor.goto_date t.month_k d
+      >>= fun month_k ->
+      Data_cursor.goto_date t.week_k d
+      >>= fun week_k ->
+      Data_cursor.goto_date t.day_k d
+      >>= fun day_k -> Some {month_k; week_k; day_k}
+    in
     let rec aux t r =
       let result = exec t in
       match result with
-      | NoAction ->
+      | NoAction None ->
           r
+      | NoAction (Some next_c) -> (
+        match goto_next_c t next_c >>| fun t' -> aux t' r with
+        | None ->
+            r
+        | Some v ->
+            v )
       | Transaction buysell when Option.is_none buysell.sell ->
           result :: r
       | Transaction buysell -> (
           let sell, _ = Option.value_exn buysell.sell in
-          let next_startdate =
-            Deriving.Type.Derived_data.date (Data_cursor.current sell)
-          in
+          let next_startdate = Data_cursor.date sell in
           let r' =
             Data_cursor.goto_date t.month_k next_startdate
             >>= fun month_k ->

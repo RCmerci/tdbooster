@@ -20,12 +20,6 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
               ; closing= current.closing
               ; high= current.high
               ; low= current.low
-              ; rose= 0.
-              ; amplitude= 0.
-              ; total_hands= 0L
-              ; amount= 0L
-              ; exchange_hands= 0.
-              ; num_of_deal= 0L
               ; days= 1 }
           , r )
       | Some last_m when Month.(month <> last_m) ->
@@ -37,12 +31,6 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
               ; closing= current.closing
               ; high= current.high
               ; low= current.low
-              ; rose= 0.
-              ; amplitude= 0.
-              ; total_hands= 0L
-              ; amount= 0L
-              ; exchange_hands= 0.
-              ; num_of_deal= 0L
               ; days= 1 }
           , month_data :: r )
       | Some _ ->

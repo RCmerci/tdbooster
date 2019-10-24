@@ -4,6 +4,7 @@ type 'a buy_action =
   | Buy of (Data_cursor.t * float option)
   | Buy_skip_to of ('a option * Data_cursor.t)
   | Buy_continue of 'a option
+  | Buy_quit of Data_cursor.t
 
 module type Strategy = sig
   type ctx
@@ -16,6 +17,7 @@ module type Strategy = sig
 
   val sell :
        buy_c:Data_cursor.t
+    -> buy_price:float
     -> Deriving.Type.Derived_data.t list (* day_k *)
     -> Deriving.Type.Derived_data.t list (* week_k *)
     -> Deriving.Type.Derived_data.t list (* month_k *)

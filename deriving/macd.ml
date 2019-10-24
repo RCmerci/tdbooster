@@ -63,7 +63,9 @@ let macd_dif_dea (data_list : Loader.Type.raw_data list) :
   let l4 = List.length dea_list in
   if l1 <> l2 || l1 <> l3 || l1 <> l4 then (
     Debug.amf [%here]
-      "unequal length of time_list, macd_list, dif_list, dea_list" ;
+      "unequal length of time_list(%d), macd_list(%d), dif_list(%d), \
+       dea_list(%d), raw_data_list len: %d"
+      l1 l2 l3 l4 (List.length data_list) ;
     None )
   else
     let zipped =

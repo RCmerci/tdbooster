@@ -1,3 +1,4 @@
 (executable
  (name        tdbooster)
- (libraries   core loader deriving strategy exec))
+ (libraries   core loader deriving strategy exec)
+ (preprocess (pps ppx_jane)))
