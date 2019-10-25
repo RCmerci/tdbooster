@@ -38,7 +38,8 @@
 
 (insert (format "%S" a))
 
-(setq json  '((name . "xxxx") (trans . [((I (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (O (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (logs . ["log1" "log2" "log3"]))])) )
+
+(setq json  [((name . "xxxx") (trans . [((I (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (O (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (logs . ["log1" "log2" "log3"]))]))] )
 
 
 
@@ -68,6 +69,9 @@
 
 (defconst tdbooster--template-transaction
   "*** ${I-date}/${I-price} - ${O-date}/${O-price} ${diff}
+    :PROPERTIES:
+    :VISIBILITY: folded
+    :END:
 **** Summary
 ***** I
 ${I-info}
@@ -96,9 +100,7 @@ ${logs}
 	 (diff (- O-price I-price))
 	 (I-info (tdbooster--trans-I-info (tdbooster--trans-I json)))
 	 (O-info (tdbooster--trans-O-info (tdbooster--trans-O json)))
-	 (logs (seq-reduce (lambda (r log-str) (concat r "\n" log-str))
-			   (seq-map (lambda (log) (format "- %s" log)) (tdbooster--trans-logs json))
-			   "")))
+	 (logs (s-join "\n" (seq-map (lambda (log) (format "- %s" log)) (tdbooster--trans-logs json)))))
     (s-format tdbooster--template-transaction 'aget `(("I-date" . ,I-date)
 						      ("O-date" . ,O-date)
 						      ("I-price" . ,I-price)
@@ -109,6 +111,19 @@ ${logs}
 						      ("logs" . ,logs)))))
 
 
+
+(defun tdbooster--render-one (json)
+  (let* ((header (tdbooster--render-header json))
+	(trans-list-json (tdbooster--translist json))
+	(trans-list (s-join "\n" (seq-map (lambda (trans-json) (tdbooster--render-transaction trans-json))
+					  trans-list-json))))
+    (concat header trans-list)))
+
+(defun tdbooster--render-all (json)
+  (s-join "\n" (seq-map #'tdbooster--render-one json)))
+
+
+(define-derived-mode )
 
 (provide 'tdbooster)
 ;;; tdbooster.el ends here
