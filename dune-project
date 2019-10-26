@@ -1,6 +1,5 @@
 (lang dune 1.11)
 (name tdbooster)
-(version 294d772-dirty)
 
 (generate_opam_files true)
 

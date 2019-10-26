@@ -29,7 +29,7 @@
 
 
 
-(defcustom tdbooster-bin "tdbooster.exe"
+(defcustom tdbooster-bin "tdbooster"
   "command to call tdbooster binary"
   :type 'string
   :group 'tdbooster)
@@ -123,20 +123,21 @@ ${logs}
   "Run tdbooster and show the results in tdbooster-mode."
   (interactive)
   (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
-	(buffer (get-buffer-create "*tdbooster*"))
-	(command (format "%s %s" tdbooster-bin args)))
+	 (buffer (get-buffer-create "*tdbooster*"))
+	 (command (format "%s %s" tdbooster-bin args)))
+    (with-current-buffer "*tdbooster-stdout*" (erase-buffer))
     (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
       (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
     (setq json-string (with-current-buffer "*tdbooster-stdout*" (buffer-string)))
     (with-current-buffer buffer
+      (read-only-mode -1)
       (erase-buffer)
       (insert (tdbooster--render-all (json-read-from-string json-string)))
       (tdbooster-mode))
     (select-window
      (display-buffer
       buffer
-      '((display-buffer-use-some-window)))
-     norecord)))
+      '((display-buffer-use-some-window))))))
 
 (provide 'tdbooster)
 ;;; tdbooster.el ends here
