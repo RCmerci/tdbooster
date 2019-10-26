@@ -5,7 +5,7 @@ type transinfo = {date: string; price: float; info: (string * string) list}
 
 type transaction =
   { i: transinfo [@key "I"]
-  ; o: transinfo [@key "O"]
+  ; o: transinfo option [@key "O"]
   ; logs: string list
   ; warnings: string list }
 [@@deriving yojson]

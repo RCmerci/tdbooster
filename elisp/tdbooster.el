@@ -1,6 +1,6 @@
 ;;; tdbooster.el --- major mode for tdbooster        -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019  root
+;; Copyright (C) 2019 rcmerci
 
 ;; Author: rcmerci <rcmerci@gmail.com>
 ;; Keywords: tools
@@ -23,30 +23,21 @@
 ;;
 
 ;;; Code:
-
-
-
-
-
-
 (require 'seq)
 (require 'json)
 (require 's)
-(alist-get 'dt  '(I (dt . "dt") (prc . 1.23) (indayinfo (a1 . "a1") (a2 . "a2"))))
-
-(setq a (json-read-file "test.json"))
-
-(insert (format "%S" a))
-
-
-(setq json  [((name . "xxxx") (trans . [((I (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (O (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (logs . ["log1" "log2" "log3"]))]))] )
 
 
 
-(setq json '((name . "xxxx") (trans . [((I (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (O (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (logs . ["log1" "log2" "log3"]))])))
+(defcustom tdbooster-bin "tdbooster.exe"
+  "command to call tdbooster binary"
+  :type 'string
+  :group 'tdbooster)
 
-(setq json '((I (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (O (date . "dt") (price . 1.23) (info (a1 . "a1") (a2 . "a2"))) (logs . ["log1" "log2" "log3"])))
-
+(defcustom tdbooster-datafiles nil
+  "datafile list for analysis "
+  :type '(repeat string)
+  :group 'tdbooster)
 
 (defmacro tdbooster--name (json) `(alist-get 'name ,json))
 (defmacro tdbooster--translist (json) `(alist-get 'trans ,json))
@@ -60,6 +51,7 @@
 (defmacro tdbooster--trans-O-price (json) `(alist-get 'price ,json))
 (defmacro tdbooster--trans-O-info (json) `(alist-get 'info ,json))
 
+(tdbooster--trans-O-date nil)
 
 (defconst tdbooster--template-header
   "
@@ -85,8 +77,8 @@ ${logs}
 (defun tdbooster--render-header (json)
   (let* ((name (tdbooster--name json))
 	 (latest-trans (seq-first (tdbooster--translist json)))
-	 (I-price-latest (tdbooster--trans-I-price (tdbooster--trans-I latest-trans)))
-	 (O-price-latest (tdbooster--trans-O-price (tdbooster--trans-O latest-trans)))
+	 (I-price-latest (or (tdbooster--trans-I-price (tdbooster--trans-I latest-trans)) "NIL"))
+	 (O-price-latest (or (tdbooster--trans-O-price (tdbooster--trans-O latest-trans)) "NIL"))
 	 )
     (s-format tdbooster--template-header 'aget `(("name" . ,name)
 						 ("I-price-latest" . ,I-price-latest)
@@ -95,11 +87,11 @@ ${logs}
 (defun tdbooster--render-transaction (json)
   (let* ((I-date (tdbooster--trans-I-date (tdbooster--trans-I json)))
 	 (I-price (tdbooster--trans-I-price (tdbooster--trans-I json)))
-	 (O-date (tdbooster--trans-O-date (tdbooster--trans-O json)))
-	 (O-price (tdbooster--trans-O-price (tdbooster--trans-O json)))
-	 (diff (- O-price I-price))
+	 (O-date (or (tdbooster--trans-O-date (tdbooster--trans-O json)) "NIL"))
+	 (O-price (or (tdbooster--trans-O-price (tdbooster--trans-O json)) "NIL"))
+	 (diff (if (equal  O-price "NIL") "NIL" (- O-price I-price)))
 	 (I-info (tdbooster--trans-I-info (tdbooster--trans-I json)))
-	 (O-info (tdbooster--trans-O-info (tdbooster--trans-O json)))
+	 (O-info (or (tdbooster--trans-O-info (tdbooster--trans-O json)) "NIL"))
 	 (logs (s-join "\n" (seq-map (lambda (log) (format "- %s" log)) (tdbooster--trans-logs json)))))
     (s-format tdbooster--template-transaction 'aget `(("I-date" . ,I-date)
 						      ("O-date" . ,O-date)
@@ -123,7 +115,28 @@ ${logs}
   (s-join "\n" (seq-map #'tdbooster--render-one json)))
 
 
-(define-derived-mode )
+(define-derived-mode tdbooster-mode org-mode "tdbooster"
+  "major mode for tdbooster"
+  (read-only-mode))
+
+(defun tdbooster ()
+  "Run tdbooster and show the results in tdbooster-mode."
+  (interactive)
+  (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
+	(buffer (get-buffer-create "*tdbooster*"))
+	(command (format "%s %s" tdbooster-bin args)))
+    (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
+      (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
+    (setq json-string (with-current-buffer "*tdbooster-stdout*" (buffer-string)))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (insert (tdbooster--render-all (json-read-from-string json-string)))
+      (tdbooster-mode))
+    (select-window
+     (display-buffer
+      buffer
+      '((display-buffer-use-some-window)))
+     norecord)))
 
 (provide 'tdbooster)
 ;;; tdbooster.el ends here

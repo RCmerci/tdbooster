@@ -8,14 +8,13 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
        current
        ->
       let week_num =
-        Date.week_number
-          (Date.of_time current.time ~zone:(Time.Zone.of_utc_offset ~hours:8))
+        Date.week_number current.date
       in
       if last_week_num <> week_num then
         (* new week *)
         ( week_num
         , Some
-            { time= current.time
+            { date= current.date
             ; opening= current.opening
             ; closing= current.closing
             ; high= current.high

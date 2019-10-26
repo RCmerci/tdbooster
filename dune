@@ -1,4 +1,10 @@
 (executable
  (name        tdbooster)
+ (public_name tdbooster)
  (libraries   core loader deriving strategy exec)
  (preprocess (pps ppx_jane)))
+
+
+(env
+ (dev
+   (ocamlopt_flags (:standard "-p"))))

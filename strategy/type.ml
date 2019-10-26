@@ -9,11 +9,20 @@ type 'a buy_action =
 module type Strategy = sig
   type ctx
 
-  val month_k_buy : Data_cursor.t -> ctx option -> ctx buy_action
+  val month_k_buy :
+       Data_cursor.t
+    -> ctx option
+    -> ctx buy_action Log_warning.LogAndWarnWriter.m
 
-  val week_k_buy : Data_cursor.t -> ctx option -> ctx buy_action
+  val week_k_buy :
+       Data_cursor.t
+    -> ctx option
+    -> ctx buy_action Log_warning.LogAndWarnWriter.m
 
-  val day_k_buy : Data_cursor.t -> ctx option -> ctx buy_action
+  val day_k_buy :
+       Data_cursor.t
+    -> ctx option
+    -> ctx buy_action Log_warning.LogAndWarnWriter.m
 
   val sell :
        buy_c:Data_cursor.t
@@ -21,5 +30,6 @@ module type Strategy = sig
     -> Deriving.Type.Derived_data.t list (* day_k *)
     -> Deriving.Type.Derived_data.t list (* week_k *)
     -> Deriving.Type.Derived_data.t list (* month_k *)
-    -> (* sell_c, sell_price *) (Data_cursor.t * float) option
+    -> (* sell_c, sell_price *)
+    (Data_cursor.t * float) option Log_warning.LogAndWarnWriter.m
 end

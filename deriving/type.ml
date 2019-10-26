@@ -2,7 +2,7 @@ open Core
 
 module Derived_data = struct
   type t =
-    { time: Time.t
+    { date: Date.t
     ; raw_data: Loader.Type.raw_data
     ; ema5: float
     ; ema10: float
@@ -15,7 +15,7 @@ module Derived_data = struct
     ; macd: float }
   [@@deriving show]
 
-  let date t = Date.of_time t.time ~zone:(Time.Zone.of_utc_offset ~hours:8)
+  let date t = t.date
 
   let to_string = show
 end

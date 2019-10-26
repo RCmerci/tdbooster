@@ -52,6 +52,7 @@ module Make (Data : Data_with_timestamp) = struct
 
   let datestring t = Date.to_string (date t)
 
+  type hint = [`Day | `Week | `Month]
   (*
      dst >= date
      examples:
@@ -60,25 +61,31 @@ module Make (Data : Data_with_timestamp) = struct
      goto_date [2;3] 1 = Some 2
      goto_date [1;2;3] 4 = None
  *)
-  let goto_date t date =
+
+  let goto_date ?(hint=`Day)t date =
     let diff = Date.diff date (Data.date (current t)) in
-    let t', _ = move t diff in
-    let rec tuning t =
+    let diff' = match hint with
+      | `Day -> diff
+      | `Week -> diff / 5
+      | `Month -> diff / 20
+    in
+    let t', _ = move t diff' in
+    let rec tuning t fasttime =
       match Date.compare (Data.date (current t)) date with
       | 0 ->
           Some t
       | a when a > 0 ->
-          let left_one, n = move t (-1) in
+          let left_one, n = move t (if fasttime>0 then (-10) else (-1)) in
           if n = 0 then Some t
           else if Data.date (current left_one) < date then Some t
-          else tuning left_one
+          else tuning left_one (fasttime-1)
       | _ ->
-          let right_one, n = move t 1 in
+        let right_one, n = move t (if fasttime>0 then 10 else 1) in
           if n = 0 then None
           else if Data.date (current right_one) > date then Some right_one
-          else tuning right_one
+          else tuning right_one (fasttime-1)
     in
-    tuning t'
+    tuning t' 10
 
   (* [t, end'] *)
   let fold ?end' t ~f ~init =

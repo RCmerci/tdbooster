@@ -1,7 +1,8 @@
 open Core
 
 type raw_data =
-  { time: Time.t (* 日k:当天, 周k:周第一天, 月k:月第一天 *)
+  { date: Date.t
+  (* ; time: Time.t (\* 日k:当天, 周k:周第一天, 月k:月第一天 *\) *)
   ; opening: float (* 开盘 *)
   ; high: float (* 最高 *)
   ; low: float (* 最低 *)

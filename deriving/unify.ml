@@ -3,7 +3,7 @@ open Option.Monad_infix
 
 let unify (data_list : Loader.Type.raw_data list) :
     Type.Derived_data.t list option =
-  let timelist, ema5 = Ema.ema 5 data_list |> List.unzip in
+  let datelist, ema5 = Ema.ema 5 data_list |> List.unzip in
   let _, ema10 = Ema.ema 10 data_list |> List.unzip in
   let _, ema12 = Ema.ema 12 data_list |> List.unzip in
   let _, ema14 = Ema.ema 14 data_list |> List.unzip in
@@ -11,10 +11,10 @@ let unify (data_list : Loader.Type.raw_data list) :
   let _, ema60 = Ema.ema 60 data_list |> List.unzip in
   Macd.macd_dif_dea data_list
   >>= fun macd_dif_dea ->
-  let rec aux timelist ema5 ema10 ema12 ema14 ema26 ema60 macd_dif_dea
+  let rec aux datelist ema5 ema10 ema12 ema14 ema26 ema60 macd_dif_dea
       data_list (r : Type.Derived_data.t list) =
     match
-      ( timelist
+      ( datelist
       , ema5
       , ema10
       , ema12
@@ -34,7 +34,7 @@ let unify (data_list : Loader.Type.raw_data list) :
       , (_, macd, dif, dea) :: t8
       , h9 :: t9 ) ->
         aux t1 t2 t3 t4 t5 t6 t7 t8 t9
-          ( { time= h1
+          ( { date= h1
             ; raw_data= h9
             ; ema5= h2
             ; ema10= h3
@@ -50,7 +50,7 @@ let unify (data_list : Loader.Type.raw_data list) :
         List.rev r
   in
   Some
-    (aux timelist ema5 ema10 ema12 ema14 ema26 ema60 macd_dif_dea data_list [])
+    (aux datelist ema5 ema10 ema12 ema14 ema26 ema60 macd_dif_dea data_list [])
 
 let unify_day = unify
 

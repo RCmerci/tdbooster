@@ -12,6 +12,7 @@ let parse_line line : Type.raw_data option =
         Time.parse time_ ~fmt:"%Y-%m-%d"
           ~zone:(Time.Zone.of_utc_offset ~hours:8)
       in
+      let date = Date.of_time time ~zone:(Time.Zone.of_utc_offset ~hours:8) in
       let day_of_week =
         String.rsplit2 time_ ~on:','
         >>= fun (_, d) ->
@@ -61,7 +62,7 @@ let parse_line line : Type.raw_data option =
         None )
       else
         Some
-          { time
+          { date
           ; opening
           ; high
           ; low
@@ -100,4 +101,4 @@ let%test "test-read_from_string_lines" =
   List.length datal > 0
   &&
   let last = List.last_exn datal in
-  Time.equal last.time (Time.of_string "2019-10-11 00:00:00.000000+08:00")
+  Date.equal last.date (Date.of_string "2019-10-11")
