@@ -43,10 +43,9 @@ let%test "test-dif-dea-macd" =
   let dif_list = Option.value_exn (dif ~ema12_list ~ema26_list) in
   let dea_list = dea ~dif_list in
   let macd_list = Option.value_exn (macd ~dif_list ~dea_list) in
-  (* 4000: 2018-6-26 *)
-  int_of_float (List.nth_exn dif_list 4000) = 11
-  && int_of_float (List.nth_exn dea_list 4000) = 14
-  && int_of_float (List.nth_exn macd_list 4000) = -6
+  int_of_float (List.nth_exn dif_list 4000) = 20
+  && int_of_float (List.nth_exn dea_list 4000) = 18
+  && int_of_float (List.nth_exn macd_list 4000) = 4
 
 let macd_dif_dea (data_list : Loader.Type.raw_data list) :
   (Date.t * float * float * float) list option =
@@ -85,7 +84,7 @@ let%test "test-macd_dif_dea" =
   Option.is_some r
   &&
   let date, macd, dif, dea = List.nth_exn (Option.value_exn r) 4000 in
-  Date.equal date (Date.of_string "2018-06-26")
-  && int_of_float macd = -6
-  && int_of_float dif = 11
-  && int_of_float dea = 14
+  Date.equal date (Date.of_string "2018-06-14")
+  && int_of_float macd = 4
+  && int_of_float dif = 20
+  && int_of_float dea = 18

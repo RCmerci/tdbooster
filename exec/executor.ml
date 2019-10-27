@@ -17,72 +17,31 @@ type executorResult =
         logs: Strategy.Log_warning.Log.t;
         warnings: Strategy.Log_warning.Warning.t
       }
+  | Attention of
+      {
+        name: string;
+        logs: Strategy.Log_warning.Log.t;
+        warnings: Strategy.Log_warning.Warning.t
+      }
 
 let to_output name (rl:executorResult list):Output.t =
-  let translist = List.map rl ~f:(fun r ->
+  let translist, attentionlist = List.map rl ~f:(fun r ->
       match r with
-      | NoAction _ -> None
+      | NoAction _ -> (None, None)
       | Transaction {buy;sell;logs;warnings;_} ->
-        Some (
-          ({i={date=(Data_cursor.datestring(fst buy)); price=Float.round_decimal ~decimal_digits:2 (snd buy); info=[]};
-            o=Option.map sell
-                ~f:(fun sell -> ({date=(Data_cursor.datestring(fst sell)); price=Float.round_decimal ~decimal_digits:2 (snd sell); info=[]}:Output.transinfo));
-           logs=Strategy.Log_warning.Log.to_string_list logs;
-           warnings=Strategy.Log_warning.Warning.to_string_list warnings;
-          }:Output.transaction)
-        )
-    ) |> List.filter_opt   in
-  [{name; trans=translist}]
+        (Some ({i={date=(Data_cursor.datestring(fst buy)); price=Float.round_decimal ~decimal_digits:2 (snd buy); info=[]};
+                o=Option.map sell
+                    ~f:(fun sell -> ({date=(Data_cursor.datestring(fst sell)); price=Float.round_decimal ~decimal_digits:2 (snd sell); info=[]}:Output.transinfo));
+                logs=Strategy.Log_warning.Log.to_string_list logs;
+                warnings=Strategy.Log_warning.Warning.to_string_list warnings;
+               }:Output.transaction),None)
+      | Attention {logs; warnings; _} ->
+        ( None , Some ({logs=Strategy.Log_warning.Log.to_string_list logs;
+                        warnings=Strategy.Log_warning.Warning.to_string_list warnings}:Output.attention))
+    ) |> List.unzip in
 
-type statistics =
-  { buy: Date.t option
-  ; sell: Date.t option
-  ; duration: int
-  ; price_diff: float
-  ; buy_price: float
-  ; sell_price: float option
-  ; percent: float option (* 不计算股价<0的情况 *) }
-[@@deriving show]
+  [{name; trans=List.filter_opt translist; attentions=List.filter_opt attentionlist}]
 
-let stat r =
-  match r with
-  | NoAction _ ->
-    { duration= 0
-    ; price_diff= 0.
-    ; buy= None
-    ; sell= None
-    ; buy_price= 0.
-    ; sell_price= None
-    ; percent= None }
-  | Transaction tr ->
-    let duration =
-      match tr.sell with
-      | None ->
-        0
-      | Some (sellc, _) ->
-        Date.diff (Data_cursor.date sellc) (Data_cursor.date (fst tr.buy))
-    in
-    let price_diff =
-      match tr.sell with
-      | None ->
-        0.
-      | Some (_, sellp) ->
-        sellp -. snd tr.buy
-    in
-    let sell =
-      Option.value_map tr.sell ~default:None ~f:(fun (c, _) ->
-          Some (Data_cursor.date c) )
-    in
-    let sell_price = tr.sell >>| snd in
-    { buy= Some (Data_cursor.date (fst tr.buy))
-    ; sell
-    ; duration
-    ; price_diff
-    ; buy_price= snd tr.buy
-    ; sell_price
-    ; percent=
-        (if snd tr.buy < 0. then None else Some (price_diff /. snd tr.buy))
-    }
 
 module Make (St : Strategy.Type.Strategy) = struct
   type t = {month_k: Data_cursor.t; week_k: Data_cursor.t; day_k: Data_cursor.t}
@@ -101,41 +60,60 @@ module Make (St : Strategy.Type.Strategy) = struct
     Data_cursor.create day_k_data >>= fun day_k -> Some {month_k; week_k; day_k}
 
   let exec name t =
+    let open Strategy.Log_warning in
     let rec aux f t ctx =
       let logs, warnings, v = Strategy.Log_warning.LogAndWarnWriter.eval (f t ctx) in
       match v with
       | Strategy.Type.Buy t' ->
-        First (t', logs, warnings)
+        `Buy (t', logs, warnings)
       | Strategy.Type.Buy_skip_to (ctx', t') ->
         aux f t' ctx'
       | Strategy.Type.Buy_continue ctx' ->
         let t', n = Data_cursor.move t 1 in
-        if n = 0 then Second (None, logs, warnings) else aux f t' ctx'
+        if n = 0 then `NotFinished (None, logs, warnings)
+        else aux f t' ctx'
       | Strategy.Type.Buy_quit quit_c ->
-        Second (Some quit_c, logs, warnings)
+        `Quit (Some quit_c, logs, warnings)
     in
     let month_aux = aux St.month_k_buy in
     let week_aux = aux St.week_k_buy in
     let day_aux = aux St.day_k_buy in
     match month_aux t.month_k None with
-    | Second (quit_c, logs, warnings) ->
+    | `Quit (quit_c, logs, warnings) ->
       NoAction {next=quit_c;logs;warnings;name}
-    | First ((result_month_c, _), logs, warnings) ->
-      Option.value_map ~default:(NoAction {next=(Some result_month_c); logs;warnings;name})
+    | `NotFinished (_, logs,warnings) -> (* month_buy's `NotFinished is nothing *)
+      NoAction {next=None;logs;warnings;name}
+    | `Buy ((result_month_c, _), month_logs, month_warnings) ->
+      Option.value_map ~default:(NoAction {next=(Some result_month_c); logs=month_logs;warnings=month_warnings;name})
         (Data_cursor.goto_date t.week_k (Data_cursor.date result_month_c))
         ~f:(fun start_week_c ->
             match week_aux start_week_c None with
-            | Second (quit_c,logs,warnings) ->
-              NoAction {next=quit_c;logs;warnings;name}
-            | First ((result_week_c, _), logs,warnings) ->
-              Option.value_map ~default:(NoAction {next=(Some result_week_c);logs;warnings;name})
+            | `Quit (quit_c,week_logs,week_warnings) ->
+              NoAction {next=quit_c;
+                        logs=Log.concat [week_logs;month_logs ];
+                        warnings=Warning.concat [week_warnings;month_warnings];
+                        name}
+            | `NotFinished (_, week_logs,week_warnings) ->
+              Attention {name;logs=Log.concat[week_logs;month_logs];warnings=Warning.concat [week_warnings;month_warnings]}
+            | `Buy ((result_week_c, _), week_logs,week_warnings) ->
+              Option.value_map ~default:(NoAction {next=(Some result_week_c);
+                                                   logs=Log.concat [week_logs;month_logs];
+                                                   warnings=Warning.concat [week_warnings;month_warnings];
+                                                   name})
                 (Data_cursor.goto_date t.day_k
                    (Data_cursor.date result_week_c))
                 ~f:(fun start_day_c ->
                     match day_aux start_day_c None with
-                    | Second (quit_c,logs,warnings) ->
-                      NoAction {next=quit_c;logs;warnings;name}
-                    | First ((buy_c, buy_price'), logs,warnings) ->
+                    | `Quit (quit_c,day_logs,day_warnings) ->
+                      NoAction {next=quit_c;
+                                logs=Log.concat [day_logs;week_logs;month_logs];
+                                warnings=Warning.concat [day_warnings;week_warnings;month_warnings];
+                                name}
+                    | `NotFinished (_, day_logs, day_warnings) ->
+                      Attention{name;
+                                logs=Log.concat [day_logs;week_logs;month_logs];
+                                warnings=Warning.concat [day_warnings;week_warnings;month_warnings]}
+                    | `Buy ((buy_c, buy_price'), day_logs,day_warnings) ->
                       let buy_price = Option.value_exn buy_price' in
                       let logs', warnings', sell = Strategy.Log_warning.LogAndWarnWriter.eval
                           (St.sell ~buy_c ~buy_price
@@ -144,17 +122,17 @@ module Make (St : Strategy.Type.Strategy) = struct
                              (Data_cursor.to_k_list t.month_k)) in
                       Transaction
                         { name;
-                          logs= Strategy.Log_warning.Log.concat [logs'; logs]
-                        ;warnings= Strategy.Log_warning.Warning.concat [warnings' ;warnings];
+                          logs= Log.concat [logs';day_logs;week_logs; month_logs]
+                        ;warnings= Warning.concat [warnings';day_warnings;week_warnings;month_warnings];
                           buy= (buy_c, buy_price)
                         ; sell } ) )
 
   let exec_sequence name t =
     let goto_next_c t next_c =
       let d = Data_cursor.date next_c in
-      Data_cursor.goto_date t.month_k d
+      Data_cursor.goto_date t.month_k d ~hint:`Month
       >>= fun month_k ->
-      Data_cursor.goto_date t.week_k d
+      Data_cursor.goto_date t.week_k d ~hint:`Week
       >>= fun week_k ->
       Data_cursor.goto_date t.day_k d
       >>= fun day_k -> Some {month_k; week_k; day_k}
@@ -174,7 +152,6 @@ module Make (St : Strategy.Type.Strategy) = struct
       | Transaction buysell when Option.is_none buysell.sell ->
         result :: r
       | Transaction buysell -> (
-
           let sell, _ = Option.value_exn buysell.sell in
           let next_startdate = Data_cursor.date sell in
           let r' =
@@ -186,6 +163,9 @@ module Make (St : Strategy.Type.Strategy) = struct
             >>= fun day_k -> Some (aux {month_k; week_k; day_k} (result :: r))
           in
           match r' with None -> result :: r | Some v -> v )
+      | Attention _ -> (
+          result::r
+        )
     in
-    aux t [] |> List.rev
+    aux t []
 end

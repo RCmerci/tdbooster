@@ -70,22 +70,22 @@ module Make (Data : Data_with_timestamp) = struct
       | `Month -> diff / 20
     in
     let t', _ = move t diff' in
-    let rec tuning t fasttime =
+    let rec tuning t  =
       match Date.compare (Data.date (current t)) date with
       | 0 ->
           Some t
       | a when a > 0 ->
-          let left_one, n = move t (if fasttime>0 then (-10) else (-1)) in
+          let left_one, n = move t (-1) in
           if n = 0 then Some t
           else if Data.date (current left_one) < date then Some t
-          else tuning left_one (fasttime-1)
+          else tuning left_one
       | _ ->
-        let right_one, n = move t (if fasttime>0 then 10 else 1) in
+        let right_one, n = move t 1 in
           if n = 0 then None
           else if Data.date (current right_one) > date then Some right_one
-          else tuning right_one (fasttime-1)
+          else tuning right_one
     in
-    tuning t' 10
+    tuning t'
 
   (* [t, end'] *)
   let fold ?end' t ~f ~init =

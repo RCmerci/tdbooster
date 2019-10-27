@@ -10,7 +10,14 @@ type transaction =
   ; warnings: string list }
 [@@deriving yojson]
 
-type transactionlist = {name: string; trans: transaction list}
+type attention =
+  {
+    logs: string list;
+    warnings: string list;
+  }
+[@@deriving yojson]
+
+type transactionlist = {name: string; trans: transaction list; attentions: attention list}
 [@@deriving yojson]
 
 type t = transactionlist list [@@deriving yojson]

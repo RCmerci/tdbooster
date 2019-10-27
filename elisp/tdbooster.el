@@ -44,19 +44,30 @@
 (defmacro tdbooster--trans-I (json) `(alist-get 'I ,json))
 (defmacro tdbooster--trans-O (json) `(alist-get 'O ,json))
 (defmacro tdbooster--trans-logs (json) `(alist-get 'logs ,json))
+(defmacro tdbooster--trans-warnings (json) `(alist-get 'warnings ,json))
 (defmacro tdbooster--trans-I-date (json) `(alist-get 'date ,json))
 (defmacro tdbooster--trans-I-price (json) `(alist-get 'price ,json))
 (defmacro tdbooster--trans-I-info (json) `(alist-get 'info ,json))
 (defmacro tdbooster--trans-O-date (json) `(alist-get 'date ,json))
 (defmacro tdbooster--trans-O-price (json) `(alist-get 'price ,json))
 (defmacro tdbooster--trans-O-info (json) `(alist-get 'info ,json))
+(defmacro tdbooster--attentionlist (json) `(alist-get 'attentions ,json))
+(defmacro tdbooster--attention-logs (json) `(alist-get 'logs ,json))
+(defmacro tdbooster--attention-warnings (json) `(alist-get 'warnings ,json))
+
 
 (tdbooster--trans-O-date nil)
 
 (defconst tdbooster--template-header
   "
-* ${name} ${I-price-latest}/${O-price-latest}
-** Transactions
+* ${name} ${I-price-latest}/${O-price-latest} ${focus}
+** 当前关注
+    :PROPERTIES:
+    :VISIBILITY: folded
+    :END:
+${attentions}
+** 交易
+${transactions}
 ")
 
 (defconst tdbooster--template-transaction
@@ -71,28 +82,39 @@ ${I-info}
 ${O-info}
 **** Logs
 ${logs}
-")
+**** Warnings
+${warnings}")
+
+(defconst tdbooster--template-attention
+  "*** Logs
+${logs}
+*** Warnings
+${warnings}")
 
 
-(defun tdbooster--render-header (json)
+(defun tdbooster--render-header (json transactions attentions)
   (let* ((name (tdbooster--name json))
 	 (latest-trans (seq-first (tdbooster--translist json)))
 	 (I-price-latest (or (tdbooster--trans-I-price (tdbooster--trans-I latest-trans)) "NIL"))
 	 (O-price-latest (or (tdbooster--trans-O-price (tdbooster--trans-O latest-trans)) "NIL"))
-	 )
+	 (focus (if (< 0 (seq-length (tdbooster--attentionlist json))) "*" "-")))
     (s-format tdbooster--template-header 'aget `(("name" . ,name)
 						 ("I-price-latest" . ,I-price-latest)
-						 ("O-price-latest" . ,O-price-latest)))))
+						 ("O-price-latest" . ,O-price-latest)
+						 ("focus" . ,focus)
+						 ("transactions" . ,transactions)
+						 ("attentions" . ,attentions)))))
 
 (defun tdbooster--render-transaction (json)
   (let* ((I-date (tdbooster--trans-I-date (tdbooster--trans-I json)))
 	 (I-price (tdbooster--trans-I-price (tdbooster--trans-I json)))
 	 (O-date (or (tdbooster--trans-O-date (tdbooster--trans-O json)) "NIL"))
 	 (O-price (or (tdbooster--trans-O-price (tdbooster--trans-O json)) "NIL"))
-	 (diff (if (equal  O-price "NIL") "NIL" (- O-price I-price)))
+	 (diff (if (equal  O-price "NIL") "NIL" (format "%.2f" (- O-price I-price))))
 	 (I-info (tdbooster--trans-I-info (tdbooster--trans-I json)))
 	 (O-info (or (tdbooster--trans-O-info (tdbooster--trans-O json)) "NIL"))
-	 (logs (s-join "\n" (seq-map (lambda (log) (format "- %s" log)) (tdbooster--trans-logs json)))))
+	 (logs (s-join "\n" (seq-map (lambda (log) (format "- %s" log)) (tdbooster--trans-logs json))))
+	 (warnings (s-join "\n" (seq-map (lambda (warning) (format "- %s" warning)) (tdbooster--trans-warnings json)))))
     (s-format tdbooster--template-transaction 'aget `(("I-date" . ,I-date)
 						      ("O-date" . ,O-date)
 						      ("I-price" . ,I-price)
@@ -100,16 +122,26 @@ ${logs}
 						      ("diff" . ,diff)
 						      ("I-info" . ,I-info)
 						      ("O-info" . ,O-info)
-						      ("logs" . ,logs)))))
+						      ("logs" . ,logs)
+						      ("warnings" . ,warnings)))))
 
+
+(defun tdbooster--render-attention (json)
+  (let* ((logs (s-join "\n" (seq-map (lambda (log) (format "- %s" log)) (tdbooster--attention-logs json))))
+	 (warnings (s-join "\n" (seq-map (lambda (warning) (format "- %s" warning)) (tdbooster--attention-warnings json)))))
+    (s-format tdbooster--template-attention 'aget `(("logs" . ,logs)
+						    ("warnings" . ,warnings)))))
 
 
 (defun tdbooster--render-one (json)
-  (let* ((header (tdbooster--render-header json))
-	(trans-list-json (tdbooster--translist json))
-	(trans-list (s-join "\n" (seq-map (lambda (trans-json) (tdbooster--render-transaction trans-json))
-					  trans-list-json))))
-    (concat header trans-list)))
+  (let* ((trans-list-json (tdbooster--translist json))
+	 (trans-list (s-join "\n" (seq-map (lambda (trans-json) (tdbooster--render-transaction trans-json))
+					   trans-list-json)))
+	 (attention-list-json (tdbooster--attentionlist json))
+	 (attention-list (s-join "\n" (seq-map (lambda (attention-json) (tdbooster--render-attention attention-json))
+					       attention-list-json)))
+	 (all (tdbooster--render-header json trans-list attention-list)))
+    all))
 
 (defun tdbooster--render-all (json)
   (s-join "\n" (seq-map #'tdbooster--render-one json)))
@@ -125,7 +157,7 @@ ${logs}
   (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
 	 (buffer (get-buffer-create "*tdbooster*"))
 	 (command (format "%s %s" tdbooster-bin args)))
-    (with-current-buffer "*tdbooster-stdout*" (erase-buffer))
+    (with-current-buffer (get-buffer-create "*tdbooster-stdout*") (erase-buffer))
     (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
       (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
     (setq json-string (with-current-buffer "*tdbooster-stdout*" (buffer-string)))
