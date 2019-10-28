@@ -4,12 +4,14 @@ module Derived_data = struct
   type t =
     { date: Date.t
     ; raw_data: Loader.Type.raw_data
-    ; ema5: float
-    ; ema10: float
+    ; ma20: float
+    ; ma60: float
+    ; ma120: float
     ; ema12: float
-    ; ema14: float
+    ; ema20: float
     ; ema26: float
     ; ema60: float
+    ; ema120: float
     ; dif: float
     ; dea: float
     ; macd: float }
