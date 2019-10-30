@@ -11,6 +11,9 @@ let is_status_A (c : Data_cursor.t) : bool =
   current.dif > 0. && current.dea > 0. && current.macd > 0.
   && current.macd < current.dif && current.macd < current.dea
 
+
+
+
 (* 两种情况:
    1. macd 从绿柱过渡到状态A的红柱
    2. macd 红柱从左到右竹简变矮后,紧接着变高的第一根红柱
@@ -27,6 +30,19 @@ let just_enter_status_A (c : Data_cursor.t) : bool =
       else false
     | _ ->
       false
+
+(* 快要进入A状态 *)
+let will_enter_status_A (c : Data_cursor.t) : bool =
+  let left' = Data_cursor.left c 1 in
+  if List.length left' <> 1 then false
+  else
+    let left = List.nth_exn left' 0 in
+    let current = Data_cursor.current c in
+    current.macd -. left.macd > (Float.abs left.macd) *. 0.4 &&
+    current.dif > 0. && current.dea > 0. &&
+    current.dea -. left.dea > 0. &&
+    current.dif -. left.dif > 0.
+
 
 (* return (high_point_c, next_c)
    next_c: 计算下一个high_point的开始点(跳过macd<0的点)

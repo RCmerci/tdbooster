@@ -12,9 +12,11 @@ let buy_c_low_price buy_price =
   ratio *. buy_price
 
 let month_k_buy c _ : ctx buy_action Log_warning.LogAndWarnWriter.m =
-  let open Log_warning.LogAndWarnWriter in
   if just_enter_status_A c then
     log (Printf.sprintf "[%s] 刚进入 statusA" (Data_cursor.datestring c)) >>= fun _ ->
+    return (Buy (c, None))
+  else if will_enter_status_A c then
+    log (Printf.sprintf "[%s] 将要进入 statusA" (Data_cursor.datestring c)) >>= fun _ ->
     return (Buy (c, None))
   else return (Buy_continue None)
 
