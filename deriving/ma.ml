@@ -1,7 +1,7 @@
 open Core
 (* https://baike.baidu.com/item/MA指标 *)
 let ma_all_days n (closing_data_list: float list) : float list =
-  let q = Queue.create ~capacity:n () in
+  let q = Queue.create ~capacity:(n+1) () in
   List.fold ~init:[] closing_data_list ~f:(fun r a ->
       if Queue.length q >= n then
         Queue.dequeue q|>ignore;
