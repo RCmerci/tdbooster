@@ -67,36 +67,42 @@ module Make (St : Strategy.Type.Strategy) = struct
 
   let exec name t =
     let open Strategy.Log_warning in
-    let rec aux f t ctx =
-      let logs, warnings, v = Strategy.Log_warning.LogAndWarnWriter.eval (f t ctx) in
+    let rec aux ?(logslist=[]) ?(warningslist=[]) f t ctx uplevel_ctx =
+      let logs, warnings, v = Strategy.Log_warning.LogAndWarnWriter.eval (f t ctx uplevel_ctx) in
       match v with
       | Strategy.Type.Buy t' ->
-        `Buy (t', logs, warnings)
+        `Buy (t',
+              Strategy.Log_warning.Log.concat (logs::logslist),
+              Strategy.Log_warning.Warning.concat (warnings::warningslist))
       | Strategy.Type.Buy_skip_to (ctx', t') ->
-        aux f t' ctx'
+        aux f t' ctx' uplevel_ctx ~logslist:(logs::logslist) ~warningslist:(warnings::warningslist)
       | Strategy.Type.Buy_continue ctx' ->
         let t', n = Data_cursor.move t 1 in
-        if n = 0 then `NotFinished (None, logs, warnings)
-        else aux f t' ctx'
+        if n = 0 then `NotFinished (None,
+                                    Strategy.Log_warning.Log.concat (logs::logslist),
+                                    Strategy.Log_warning.Warning.concat (warnings::warningslist))
+        else aux f t' ctx' uplevel_ctx ~logslist:(logs::logslist) ~warningslist:(warnings::warningslist)
       | Strategy.Type.Buy_quit quit_c ->
-        `Quit (Some quit_c, logs, warnings)
+        `Quit (Some quit_c,
+               Strategy.Log_warning.Log.concat(logs::logslist),
+               Strategy.Log_warning.Warning.concat (warnings::warningslist))
     in
     let month_aux = aux St.month_k_buy in
     let week_aux = aux St.week_k_buy in
     let day_aux = aux St.day_k_buy in
-    match month_aux t.month_k None with
+    match month_aux t.month_k None () with
     | `Quit (quit_c, logs, warnings) ->
       NoAction {next=quit_c;logs;warnings;name}
     | `NotFinished (_, logs,warnings) -> (* month_buy's `NotFinished is nothing *)
       NoAction {next=None;logs;warnings;name}
-    | `Buy ((result_month_c, _), month_logs, month_warnings) ->
+    | `Buy ((result_month_c, _, month_to_week_ctx), month_logs, month_warnings) ->
       (* 1个月结束了才有月k,所以后面的计算需要在这个月之后 *)
       let next_month,n = Data_cursor.move result_month_c 1 in
       if n = 0 then NoAction{next=(Some next_month); logs=month_logs;warnings=month_warnings;name} else
         Option.value_map ~default:(NoAction {next=(Some next_month); logs=month_logs;warnings=month_warnings;name})
           (Data_cursor.goto_date t.week_k (Data_cursor.date next_month))
           ~f:(fun start_week_c ->
-              match week_aux start_week_c None with
+              match week_aux start_week_c None month_to_week_ctx with
               | `Quit (quit_c,week_logs,week_warnings) ->
                 NoAction {next=quit_c;
                           logs=Log.concat [week_logs;month_logs ];
@@ -104,7 +110,7 @@ module Make (St : Strategy.Type.Strategy) = struct
                           name}
               | `NotFinished (_, week_logs,week_warnings) ->
                 Attention {name;logs=Log.concat[week_logs;month_logs];warnings=Warning.concat [week_warnings;month_warnings]}
-              | `Buy ((result_week_c, _), week_logs,week_warnings) ->
+              | `Buy ((result_week_c, _, week_to_day_ctx), week_logs,week_warnings) ->
                 Option.value_map ~default:(NoAction {next=(Some result_week_c);
                                                      logs=Log.concat [week_logs;month_logs];
                                                      warnings=Warning.concat [week_warnings;month_warnings];
@@ -112,7 +118,7 @@ module Make (St : Strategy.Type.Strategy) = struct
                   (Data_cursor.goto_date t.day_k
                      (Data_cursor.date result_week_c))
                   ~f:(fun start_day_c ->
-                      match day_aux start_day_c None with
+                      match day_aux start_day_c None week_to_day_ctx with
                       | `Quit (quit_c,day_logs,day_warnings) ->
                         NoAction {next=quit_c;
                                   logs=Log.concat [day_logs;week_logs;month_logs];
@@ -122,10 +128,10 @@ module Make (St : Strategy.Type.Strategy) = struct
                         Attention{name;
                                   logs=Log.concat [day_logs;week_logs;month_logs];
                                   warnings=Warning.concat [day_warnings;week_warnings;month_warnings]}
-                      | `Buy ((buy_c, buy_price'), day_logs,day_warnings) ->
+                      | `Buy ((buy_c, buy_price', day_to_sell_ctx), day_logs,day_warnings) ->
                         let buy_price = Option.value_exn buy_price' in
                         let logs', warnings', sell = Strategy.Log_warning.LogAndWarnWriter.eval
-                            (St.sell ~buy_c ~buy_price
+                            (St.sell ~buy_c ~buy_price day_to_sell_ctx
                                (Data_cursor.to_k_list t.day_k)
                                (Data_cursor.to_k_list t.week_k)
                                (Data_cursor.to_k_list t.month_k)) in
