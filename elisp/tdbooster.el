@@ -151,12 +151,12 @@ ${warnings}")
   "major mode for tdbooster"
   (read-only-mode))
 
-(defun tdbooster ()
+(defun tdbooster (strategy)
   "Run tdbooster and show the results in tdbooster-mode."
-  (interactive)
+  (interactive (list (completing-read "strategy: " '("long_term"))))
   (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
 	 (buffer (get-buffer-create "*tdbooster*"))
-	 (command (format "%s %s" tdbooster-bin args)))
+	 (command (format "%s -s %s %s" tdbooster-bin strategy args)))
     (with-current-buffer (get-buffer-create "*tdbooster-stdout*") (erase-buffer))
     (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
       (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
