@@ -1,5 +1,4 @@
 open Core
-open Option.Monad_infix
 
 let parse_line line : Type.raw_data option =
   let elems =
@@ -13,23 +12,6 @@ let parse_line line : Type.raw_data option =
           ~zone:(Time.Zone.of_utc_offset ~hours:8)
       in
       let date = Date.of_time time ~zone:(Time.Zone.of_utc_offset ~hours:8) in
-      let day_of_week =
-        String.rsplit2 time_ ~on:','
-        >>= fun (_, d) ->
-        match d with
-        | "一" ->
-            Some 1
-        | "二" ->
-            Some 2
-        | "三" ->
-            Some 3
-        | "四" ->
-            Some 4
-        | "五" ->
-            Some 5
-        | _ ->
-            None
-      in
       let opening = Float.of_string opening_ in
       let high = Float.of_string high_ in
       let low = Float.of_string low_ in
@@ -56,24 +38,19 @@ let parse_line line : Type.raw_data option =
        *     (String.substr_replace_all num_of_deal_ ~pattern:"," ~with_:"")
        * in *)
       let days = 1 in
-      if Option.is_none day_of_week then (
-        Debug.amf [%here] "day_of_week is None on day_k, time: %s"
-          (Time.to_string time) ;
-        None )
-      else
-        Some
-          { date
-          ; opening
-          ; high
-          ; low
-          ; closing
-              (* ; rose
-           * ; amplitude
-           * ; total_hands
-           * ; amount
-           * ; exchange_hands
-           * ; num_of_deal *)
-          ; days }
+      Some
+        { date
+        ; opening
+        ; high
+        ; low
+        ; closing
+        (* ; rose
+         * ; amplitude
+         * ; total_hands
+         * ; amount
+         * ; exchange_hands
+         * ; num_of_deal *)
+        ; days }
     with _ -> None )
   | _ ->
       None

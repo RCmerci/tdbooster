@@ -51,7 +51,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
 
 let%test "test-month_k" =
   let datal =
-    Loader.From_tonghuashun_txt.read_from_string_lines
+    Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
   in
   let month_data_list = month_k datal in

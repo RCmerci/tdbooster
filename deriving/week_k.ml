@@ -41,7 +41,7 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
 
 let%test "test-week_k" =
   let datal =
-    Loader.From_tonghuashun_txt.read_from_string_lines
+    Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
   in
   let week_data_list = week_k datal in

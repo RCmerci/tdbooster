@@ -16,7 +16,7 @@ let%test "test-ma" = ma_all_days 3 [1.;2.;3.;4.;5.] = [1.; 1.5; 2.; 3.; 4.]
 
 let%test "test-ma2" =
   let datal =
-    Loader.From_tonghuashun_txt.read_from_string_lines
+    Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
   in
   let closing_data_list = List.map datal ~f:(fun d -> d.closing) in

@@ -26,7 +26,7 @@ let ema_all_days n (closing_data_list : float list) : float list =
 
 let%test "test-ema_all" =
   let datal =
-    Loader.From_tonghuashun_txt.read_from_string_lines
+    Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
   in
   let closing_data_list = List.map datal ~f:(fun d -> d.closing) in
@@ -49,7 +49,7 @@ let ema n (data_list : Loader.Type.raw_data list) : (Date.t * float) list =
 
 let%test "test-ema" =
   let datal =
-    Loader.From_tonghuashun_txt.read_from_string_lines
+    Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
   in
   let ema60_all = ema 60 datal in
