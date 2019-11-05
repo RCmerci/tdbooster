@@ -34,10 +34,18 @@
   :type 'string
   :group 'tdbooster)
 
+
+(defcustom tdbooster-datafiles-dir nil
+  "datafiles dir "
+  :type 'string
+  :group 'tdbooster)
+
 (defcustom tdbooster-datafiles nil
   "datafile list for analysis "
   :type '(repeat string)
   :group 'tdbooster)
+
+
 
 (defmacro tdbooster--name (json) `(alist-get 'name ,json))
 (defmacro tdbooster--translist (json) `(alist-get 'trans ,json))
@@ -151,12 +159,12 @@ ${warnings}")
   "major mode for tdbooster"
   (read-only-mode))
 
-(defun tdbooster (strategy)
+(defun tdbooster (refreshdata strategy)
   "Run tdbooster and show the results in tdbooster-mode."
-  (interactive (list (completing-read "strategy: " '("long_term"))))
+  (interactive (list (yes-or-no-p "refresh datafile?") (completing-read "strategy: " '("long_term"))))
   (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
 	 (buffer (get-buffer-create "*tdbooster*"))
-	 (command (format "%s -s %s %s" tdbooster-bin strategy args)))
+	 (command (format "%s %s -s %s -o %s %s"  tdbooster-bin (if refreshdata "-r" "") strategy tdbooster-datafiles-dir args)))
     (with-current-buffer (get-buffer-create "*tdbooster-stdout*") (erase-buffer))
     (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
       (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
