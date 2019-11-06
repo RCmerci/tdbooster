@@ -161,9 +161,9 @@ ${warnings}")
 
 (defun tdbooster (refreshdata strategy)
   "Run tdbooster and show the results in tdbooster-mode."
-  (interactive (list (yes-or-no-p "refresh datafile?") (completing-read "strategy: " '("long_term"))))
+  (interactive (list (yes-or-no-p "refresh datafile?") (completing-read "strategy: " '("long_term" "medium_term"))))
   (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
-	 (buffer (get-buffer-create "*tdbooster*"))
+	 (buffer (get-buffer-create (format "*tdbooster-%s*" strategy)))
 	 (command (format "%s %s -s %s -o %s %s"  tdbooster-bin (if refreshdata "-r" "") strategy tdbooster-datafiles-dir args)))
     (with-current-buffer (get-buffer-create "*tdbooster-stdout*") (erase-buffer))
     (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))

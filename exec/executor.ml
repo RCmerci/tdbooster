@@ -145,11 +145,12 @@ module Make (St : Strategy.Type.Strategy) = struct
   let exec_sequence name t =
     let goto_next_c t next_c =
       let d = Data_cursor.date next_c in
-      Data_cursor.goto_date t.month_k d ~hint:`Month
+      let d'= if (Data_cursor.date t.day_k) >= d then Date.add_days (Data_cursor.date t.day_k) 1 else d in
+      Data_cursor.goto_date t.month_k d' ~hint:`Month
       >>= fun month_k ->
-      Data_cursor.goto_date t.week_k d ~hint:`Week
+      Data_cursor.goto_date t.week_k d' ~hint:`Week
       >>= fun week_k ->
-      Data_cursor.goto_date t.day_k d
+      Data_cursor.goto_date t.day_k d'
       >>= fun day_k -> Some {month_k; week_k; day_k}
     in
     let rec aux t r =
@@ -159,7 +160,9 @@ module Make (St : Strategy.Type.Strategy) = struct
         (match v.next with
          | None -> r
          | Some next_c ->
-           (match goto_next_c t next_c >>| fun t' -> aux t' r with
+           (match goto_next_c t next_c >>| fun t' ->
+              (* Debug.eprintf "%s, %s, %s" (Data_cursor.to_string t'.month_k) (Data_cursor.to_string t'.week_k) (Data_cursor.to_string t'.day_k); *)
+              aux t' r with
             | None ->
               r
             | Some v ->

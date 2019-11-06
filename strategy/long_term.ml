@@ -15,11 +15,12 @@ let buy_c_low_price  buy_price =
   let ratio = if buy_price < 0. then 1.2 else 0.8 in
   ratio *. buy_price
 
+
 let month_k_buy c _ _ :(ctx, month_to_week_ctx) buy_action Log_warning.LogAndWarnWriter.m =
   if just_enter_status_A c then
     log (Printf.sprintf "[%s] 刚进入 statusA" (Data_cursor.datestring c)) >>= fun _ ->
-    if (Data_cursor.current c).bias24 > 0.45 then
-      log (Printf.sprintf "[%s] BIAS24 > 45%%, 放弃" (Data_cursor.datestring c)) >>= fun _ ->
+    if (Data_cursor.current c).bias24 > 0.4 then
+      log (Printf.sprintf "[%s] BIAS24 > 40%%, 放弃" (Data_cursor.datestring c)) >>= fun _ ->
       return (Buy_continue None)
     else
       return (Buy (c, None, ()))
@@ -91,19 +92,20 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
       ~default:(return None)
       ~f:(fun (sellc, sellp, l) -> (log l >>= fun _ -> return (Some(sellc, sellp))))
   | h :: _ ->
-    Option.first_some
+    let logs1 = ref [] in
+    let logs2 = ref [] in
       (* 检查第一个周k低点之前的价格是否有低于买入价格的80% *)
-      (Option.bind
+    let r1 = (Option.bind
          (Data_cursor.find ~end':h buy_c ~f:(fun c ->
               (Data_cursor.current c).raw_data.low < buy_c_low_price buy_price))
          ~f:(fun e ->
-             Some (e, buy_c_low_price buy_price , [(Printf.sprintf "[%s] 低于买入价格(%f)*80%%, 卖出"
+             logs1 := (Printf.sprintf "[%s] 低于买入价格(%f)*80%%, 卖出"
                                                           (Data_cursor.datestring e)
-                                                          buy_price)])))
+                                                          buy_price) :: !logs1;
+             Some (e, buy_c_low_price buy_price))) in
 
       (* 检查后续低于最近一个周k低点 *)
-      (let logs = ref [] in
-       List.find_mapi low_list ~f:(fun ind c ->
+    let r2 = (List.find_mapi low_list ~f:(fun ind c ->
            let low_price = (Data_cursor.current c).raw_data.low in
            let ratio = if low_price < 0. then 1.02 else 0.98 in
            let date =
@@ -112,17 +114,19 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
            let day_c' =
              Option.value_exn (Data_cursor.goto_date day_c date)
            in
-           logs := (Printf.sprintf "[%s] 提高卖出价格阈值到 %.2f" (Data_cursor.datestring c) (low_price  *. ratio)) :: !logs;
+           logs2 := (Printf.sprintf "[%s] 提高卖出价格阈值到 %.2f" (Data_cursor.datestring c) (low_price  *. ratio)) :: !logs2;
             Option.bind (Data_cursor.find
                           ?end':(List.nth low_list (ind + 1))
                           day_c'
-                          ~f:(fun e -> (Data_cursor.current e).raw_data.low < low_price *. ratio))
+                          ~f:(fun e ->
+                              (Data_cursor.current e).raw_data.low < low_price *. ratio))
              ~f:(fun sellc ->
-                 logs := (Printf.sprintf "[%s] 低于周k低点价格(%s) %f*0.98=%f, 卖出"
-                                      (Data_cursor.datestring sellc) (Data_cursor.datestring c) (low_price) (low_price *. ratio)) :: !logs;
-                 Some (sellc, low_price *. ratio ,!logs ))
-                                            ))
+                 logs2 := (Printf.sprintf "[%s] 低于周k低点价格(%s) %f*0.98=%f, 卖出"
+                            (Data_cursor.datestring sellc) (Data_cursor.datestring c)
+                            (low_price) (low_price *. ratio)) :: !logs2;
+                 Some (sellc, low_price *. ratio)))) in
 
-    |> Option.value_map ~default:(return None) ~f:(fun (sellc, sellp, logs) ->
-        List.fold_right logs ~init:(return ()) ~f:(fun s r -> r >>= fun _ -> log s) >>= fun _ ->
-        return (Some(sellc, sellp)))
+    match (r1,r2) with
+    | Some _, _ -> List.fold_right !logs1 ~init:(return ()) ~f:(fun s r -> r >>= fun _ -> log s) >>= fun _ -> return r1
+    | None, Some _ -> List.fold_right !logs2 ~init:(return ()) ~f:(fun s r -> r >>= fun _ -> log s) >>= fun _ -> return r2
+    | _ -> return None

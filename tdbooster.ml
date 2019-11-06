@@ -4,6 +4,7 @@ open Option.Monad_infix
 let to_strategy s =
   match s with
   | "long_term" -> (module Strategy.Long_term: Strategy.Type.Strategy)
+  | "medium_term" -> (module Strategy.Medium_term: Strategy.Type.Strategy)
   | _ -> failwith (Printf.sprintf "unknown strategy: %s" s)
 
 let f codes strategy output_dir refresh_data =
