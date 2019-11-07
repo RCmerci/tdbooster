@@ -42,12 +42,14 @@ let to_output name (rl:executorResult list):Output.t =
 
   [{name; trans=List.filter_opt translist; attentions=List.filter_opt attentionlist}]
 
-let buy_plus_1 buy sell =
-  let buy_date = Data_cursor.date buy in
-  let sell_date = Data_cursor.date sell in
-  if buy_date >= sell_date then
-    Date.add_days buy_date 1
-  else sell_date
+
+let atleast_next_day atleast_next_this_c d2 =
+  let atleast_next_this_date = Data_cursor.date atleast_next_this_c in
+  let d2' = Data_cursor.date d2 in
+  if atleast_next_this_date >= d2' then
+    Date.add_days atleast_next_this_date 1
+  else d2'
+
 
 module Make (St : Strategy.Type.Strategy) = struct
   type t = {month_k: Data_cursor.t; week_k: Data_cursor.t; day_k: Data_cursor.t}
@@ -67,7 +69,7 @@ module Make (St : Strategy.Type.Strategy) = struct
 
   let exec name t =
     let open Strategy.Log_warning in
-    let rec aux ?(logslist=[]) ?(warningslist=[]) f t ctx uplevel_ctx =
+    let rec aux ?(logslist=[]) ?(warningslist=[]) tp f t ctx uplevel_ctx =
       let logs, warnings, v = Strategy.Log_warning.LogAndWarnWriter.eval (f t ctx uplevel_ctx) in
       match v with
       | Strategy.Type.Buy t' ->
@@ -75,21 +77,35 @@ module Make (St : Strategy.Type.Strategy) = struct
               Strategy.Log_warning.Log.concat (logs::logslist),
               Strategy.Log_warning.Warning.concat (warnings::warningslist))
       | Strategy.Type.Buy_skip_to (ctx', t') ->
-        aux f t' ctx' uplevel_ctx ~logslist:(logs::logslist) ~warningslist:(warnings::warningslist)
+        let t'' = (Data_cursor.goto_date t' (atleast_next_day t t')) in
+        (match (tp, t'') with
+         | (`Month, _) -> `Quit(t'',
+                                        Strategy.Log_warning.Log.concat(logs::logslist),
+                                        Strategy.Log_warning.Warning.concat (warnings::warningslist))
+         | (_, Some t''') ->
+           aux tp f t''' ctx' uplevel_ctx ~logslist:(logs::logslist) ~warningslist:(warnings::warningslist)
+         | (_, None) -> `NotFinished (None,
+                                 Strategy.Log_warning.Log.concat (logs::logslist),
+                                 Strategy.Log_warning.Warning.concat (warnings::warningslist)))
       | Strategy.Type.Buy_continue ctx' ->
         let t', n = Data_cursor.move t 1 in
         if n = 0 then `NotFinished (None,
                                     Strategy.Log_warning.Log.concat (logs::logslist),
                                     Strategy.Log_warning.Warning.concat (warnings::warningslist))
-        else aux f t' ctx' uplevel_ctx ~logslist:(logs::logslist) ~warningslist:(warnings::warningslist)
+        else
+          (match tp with
+           | `Month -> `Quit(Some t',
+                             Strategy.Log_warning.Log.concat (logs::logslist),
+                             Strategy.Log_warning.Warning.concat (warnings::warningslist))
+           | _ -> aux tp f t' ctx' uplevel_ctx ~logslist:(logs::logslist) ~warningslist:(warnings::warningslist))
       | Strategy.Type.Buy_quit quit_c ->
         `Quit (Some quit_c,
                Strategy.Log_warning.Log.concat(logs::logslist),
                Strategy.Log_warning.Warning.concat (warnings::warningslist))
     in
-    let month_aux = aux St.month_k_buy in
-    let week_aux = aux St.week_k_buy in
-    let day_aux = aux St.day_k_buy in
+    let month_aux = aux `Month St.month_k_buy in
+    let week_aux = aux `Week St.week_k_buy in
+    let day_aux = aux `Day St.day_k_buy in
     match month_aux t.month_k None () with
     | `Quit (quit_c, logs, warnings) ->
       NoAction {next=quit_c;logs;warnings;name}
@@ -142,9 +158,35 @@ module Make (St : Strategy.Type.Strategy) = struct
                             buy= (buy_c, buy_price)
                           ; sell } ) )
 
+  let rec exec_aux name t r nextf =
+    let result = exec name t in
+    match result with
+    | NoAction v ->
+      (match v.next with
+       | None -> r
+       | Some next_c ->
+         (match nextf t (Data_cursor.date next_c) >>| fun t' ->
+            exec_aux name t' r nextf with
+         | None ->
+           r
+         | Some v ->
+           v ))
+    | Transaction buysell when Option.is_none buysell.sell ->
+      result :: r
+    | Transaction buysell -> (
+        let sell, _ = Option.value_exn buysell.sell in
+        let next_startdate = atleast_next_day (fst buysell.buy) sell in
+        match nextf t next_startdate with
+        | Some {month_k; week_k; day_k} ->
+          (exec_aux name {month_k; week_k; day_k} (result :: r) nextf)
+        | None -> result :: r)
+    | Attention _ -> (
+        result::r
+      )
+
   let exec_sequence name t =
     let goto_next_c t next_c =
-      let d = Data_cursor.date next_c in
+      let d = next_c in
       let d'= if (Data_cursor.date t.day_k) >= d then Date.add_days (Data_cursor.date t.day_k) 1 else d in
       Data_cursor.goto_date t.month_k d' ~hint:`Month
       >>= fun month_k ->
@@ -153,37 +195,22 @@ module Make (St : Strategy.Type.Strategy) = struct
       Data_cursor.goto_date t.day_k d'
       >>= fun day_k -> Some {month_k; week_k; day_k}
     in
-    let rec aux t r =
-      let result = exec name t in
-      match result with
-      | NoAction v ->
-        (match v.next with
-         | None -> r
-         | Some next_c ->
-           (match goto_next_c t next_c >>| fun t' ->
-              (* Debug.eprintf "%s, %s, %s" (Data_cursor.to_string t'.month_k) (Data_cursor.to_string t'.week_k) (Data_cursor.to_string t'.day_k); *)
-              aux t' r with
-            | None ->
-              r
-            | Some v ->
-              v ))
-      | Transaction buysell when Option.is_none buysell.sell ->
-        result :: r
-      | Transaction buysell -> (
-          let sell, _ = Option.value_exn buysell.sell in
-          let next_startdate = buy_plus_1 (fst buysell.buy) sell in
-          let r' =
-            Data_cursor.goto_date t.month_k next_startdate
-            >>= fun month_k ->
-            Data_cursor.goto_date t.week_k next_startdate
-            >>= fun week_k ->
-            Data_cursor.goto_date t.day_k next_startdate
-            >>= fun day_k -> Some (aux {month_k; week_k; day_k} (result :: r))
-          in
-          match r' with None -> result :: r | Some v -> v )
-      | Attention _ -> (
-          result::r
-        )
+    exec_aux name t [] goto_next_c
+
+  let exec_every_month name t =
+    let next_month t _ =
+      let month_first_day =
+        let monthdate = Data_cursor.date t.month_k in
+        Date.(add_days
+                (add_months monthdate 1)
+                (1 - (day monthdate)))
+      in
+      Data_cursor.goto_date t.month_k month_first_day ~hint:`Month >>=
+      fun month_k ->
+      Data_cursor.goto_date t.week_k month_first_day ~hint:`Week >>=
+      fun week_k ->
+      Data_cursor.goto_date t.day_k month_first_day >>=
+      fun day_k -> Some {month_k;week_k;day_k}
     in
-    aux t []
+    exec_aux name t [] next_month
 end

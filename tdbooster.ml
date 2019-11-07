@@ -16,7 +16,7 @@ let f codes strategy output_dir refresh_data =
       let module E = Exec.Executor.Make(S)  in
       E.create rawdata
       >>| fun t ->
-      let r = E.exec_sequence code t in
+      let r = E.exec_every_month code t in
       Exec.Executor.to_output code r) |> List.filter_opt |> List.join  in
   Exec.Output.to_string outputlist |> print_string
 let command =
