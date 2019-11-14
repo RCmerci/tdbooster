@@ -19,6 +19,7 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
             ; closing= current.closing
             ; high= current.high
             ; low= current.low
+            ; ttm= None
             ; days= 1 }
         , week_data :: r )
       else
@@ -42,7 +43,7 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
 let%test "test-week_k" =
   let datal =
     Loader.From_txt.read_from_string_lines
-      (String.split_lines Testdata.Data.data)
+      (String.split_lines Testdata.Data.data) []
   in
   let week_data_list = week_k datal in
   List.for_all week_data_list ~f:(fun e -> e.days < 6)

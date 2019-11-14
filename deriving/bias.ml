@@ -14,7 +14,7 @@ let bias_all_days n (closing_data_list: float list): float list =
 let%test "test-bias" =
   let datal =
     Loader.From_txt.read_from_string_lines
-      (String.split_lines Testdata.Data.data)
+      (String.split_lines Testdata.Data.data) []
   in
   let closing_data_list = List.map datal ~f:(fun d -> d.closing) in
   let bias24_all = bias_all_days 24 closing_data_list in

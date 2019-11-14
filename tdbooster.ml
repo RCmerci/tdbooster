@@ -10,8 +10,10 @@ let to_strategy s =
 let f codes strategy output_dir refresh_data =
   let outputlist = List.map codes ~f:(fun code ->
       if refresh_data then
-        Loader.From_baostock.run_py_script ~code ~output_dir;
-      let rawdata = Loader.From_txt.read_from_file (Filename.concat output_dir code) in
+          Loader.From_baostock.run_py_script ~code ~output_dir;
+          Loader.From_baostock_ttm.run_py_script ~code ~output_dir;
+     let rawdata = Loader.From_txt.read_from_file (Filename.concat output_dir code)
+         (Filename.concat output_dir (code ^ ".ttm")) in
       let module S = (val to_strategy strategy:Strategy.Type.Strategy) in
       let module E = Exec.Executor.Make(S)  in
       E.create rawdata

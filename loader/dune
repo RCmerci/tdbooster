@@ -4,4 +4,4 @@
  (libraries core testdata shexp.process)
  (preprocess
   (pps ppx_inline_test ppx_deriving.show ppx_here ppx_blob))
- (preprocessor_deps (file from_baostock.py)))
+ (preprocessor_deps (file from_baostock.py) (file from_baostock_ttm.py)))

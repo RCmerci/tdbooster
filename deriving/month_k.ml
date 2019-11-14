@@ -18,6 +18,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
                  ; closing= current.closing
                  ; high= current.high
                  ; low= current.low
+                 ; ttm=None
                  ; days= 1 }
              , r )
            | Some last_m when Month.(month <> last_m) ->
@@ -29,6 +30,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
                  ; closing= current.closing
                  ; high= current.high
                  ; low= current.low
+                 ; ttm=None
                  ; days= 1 }
              , month_data :: r )
            | Some _ ->
@@ -52,7 +54,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
 let%test "test-month_k" =
   let datal =
     Loader.From_txt.read_from_string_lines
-      (String.split_lines Testdata.Data.data)
+      (String.split_lines Testdata.Data.data) []
   in
   let month_data_list = month_k datal in
   List.for_all month_data_list ~f:(fun e -> e.days < 30)

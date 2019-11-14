@@ -159,7 +159,7 @@ let%test_module _ =
   ( module struct
     let datal =
       Loader.From_txt.read_from_string_lines
-        (String.split_lines Testdata.Data.data)
+        (String.split_lines Testdata.Data.data) []
 
     let month_k = Option.value_exn (Deriving.Unify.unify_month datal)
 
