@@ -23,6 +23,9 @@ let month_k_buy c _ _ :(ctx, month_to_week_ctx) buy_action Log_warning.LogAndWar
       log (Printf.sprintf "[%s] BIAS24 > 40%%, 放弃" (Data_cursor.datestring c)) >>= fun _ ->
       return (Buy_continue None)
     else
+      warn (Printf.sprintf "[%s] 滚动市盈率(month): %.2f"
+              (Data_cursor.datestring c)
+              (Option.value ~default:0. (Data_cursor.current c).raw_data.ttm)) >>= fun _ ->
       return (Buy (c, None, ()))
   else return (Buy_continue None)
 
@@ -69,6 +72,8 @@ let day_k_buy c ctx _week_ctx : (ctx, day_to_sell_ctx) buy_action Log_warning.Lo
     then (
       log (Printf.sprintf "[%s] 突破日k高点(%s),买入"
              (Data_cursor.datestring c) (Data_cursor.datestring high_point_c)) >>= fun _ ->
+      warn (Printf.sprintf "[%s] 滚动市盈率: %.2f"
+              (Data_cursor.datestring c) (Option.value ~default:0. ((Data_cursor.current c).raw_data.ttm))) >>= fun _ ->
       return (Buy (c, Some (Data_cursor.current high_point_c).raw_data.high, ()) ))
     else return (Buy_continue (Some high_point_c))
 

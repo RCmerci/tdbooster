@@ -90,5 +90,4 @@ let%test "test-read_from_string_lines" =
   List.length datal > 0
   &&
   let last = List.last_exn datal in
-  Debug.eprint (Type.show_raw_data last);
   Date.equal last.date (Date.of_string "2019-10-11")

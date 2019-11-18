@@ -18,7 +18,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
                  ; closing= current.closing
                  ; high= current.high
                  ; low= current.low
-                 ; ttm=None
+                 ; ttm= current.ttm
                  ; days= 1 }
              , r )
            | Some last_m when Month.(month <> last_m) ->
@@ -30,7 +30,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
                  ; closing= current.closing
                  ; high= current.high
                  ; low= current.low
-                 ; ttm=None
+                 ; ttm= current.ttm
                  ; days= 1 }
              , month_data :: r )
            | Some _ ->
@@ -47,6 +47,7 @@ let month_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
                    ; low=
                        ( if current.low < month_data'.low then current.low
                          else month_data'.low )
+                   ; ttm= current.ttm
                    ; days= month_data'.days + 1 } )
              , r ) )
   |> fun (_, last_month, r) -> List.filter_opt (last_month :: r) |> List.rev

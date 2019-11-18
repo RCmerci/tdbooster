@@ -9,8 +9,9 @@ output_dir = sys.argv[2]
 #### 登陆系统 ####
 lg = bs.login()
 # 显示登陆返回信息
-print('login respond error_code:'+lg.error_code, file=sys.stderr)
-print('login respond  error_msg:'+lg.error_msg, file=sys.stderr)
+if lg.error_code != "0":
+    print('login respond error_code:'+lg.error_code, file=sys.stderr)
+    print('login respond  error_msg:'+lg.error_msg, file=sys.stderr)
 
 #### 获取沪深A股估值指标(日频)数据 ####
 # peTTM    滚动市盈率
@@ -21,8 +22,9 @@ rs = bs.query_history_k_data_plus(code,
     "date,close,peTTM,pbMRQ,psTTM,pcfNcfTTM",
     start_date='2000-01-01', end_date=str(datetime.date.today()),
     frequency="d", adjustflag="3")
-print('query_history_k_data_plus respond error_code:'+rs.error_code, file=sys.stderr)
-print('query_history_k_data_plus respond  error_msg:'+rs.error_msg, file=sys.stderr)
+if rs.error_code != "0":
+    print('query_history_k_data_plus respond error_code:'+rs.error_code, file=sys.stderr)
+    print('query_history_k_data_plus respond  error_msg:'+rs.error_msg, file=sys.stderr)
 
 #### 打印结果集 ####
 result_list = []

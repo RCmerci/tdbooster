@@ -19,7 +19,7 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
             ; closing= current.closing
             ; high= current.high
             ; low= current.low
-            ; ttm= None
+            ; ttm= current.ttm
             ; days= 1 }
         , week_data :: r )
       else
@@ -35,7 +35,8 @@ let week_k (data_list : Loader.Type.raw_data list) : Loader.Type.raw_data list
                 else week_data'.high )
             ; low=
                 ( if current.low < week_data'.low then current.low
-                else week_data'.low )
+                  else week_data'.low )
+            ; ttm= current.ttm
             ; days= week_data'.days + 1 } )
         , r ) )
   |> fun (_, last_week, r) -> List.filter_opt (last_week :: r) |> List.rev
