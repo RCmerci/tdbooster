@@ -134,4 +134,5 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
     match (r1,r2) with
     | Some _, _ -> List.fold_right !logs1 ~init:(return ()) ~f:(fun s r -> r >>= fun _ -> log s) >>= fun _ -> return r1
     | None, Some _ -> List.fold_right !logs2 ~init:(return ()) ~f:(fun s r -> r >>= fun _ -> log s) >>= fun _ -> return r2
-    | _ -> return None
+    (* 还没到卖点, 但是logs需要收集 *)
+    | _ -> List.fold_right ((!logs1) @ (!logs2)) ~init:(return ()) ~f:(fun s r -> r >>= fun _ -> log s) >>= fun _ -> return None
