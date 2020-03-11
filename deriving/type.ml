@@ -15,7 +15,10 @@ module Derived_data = struct
     ; dif: float
     ; dea: float
     ; macd: float
-    ; bias24: float }
+    ; bias24: float
+    ; rsi6: float
+    ; rsi12: float
+    ; rsi24: float }
   [@@deriving show]
 
   let date t = t.date
