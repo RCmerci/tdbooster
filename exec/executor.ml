@@ -235,11 +235,3 @@ module ArrowMake(A: Arrow) = struct
 
   let second f  =  (arr (fun a -> a)) *** f
 end
-
-
-(* module StrategyArrow:Arrow = struct
- *   type ('a, 'b) t = {
- *     f: 'a -> 'b;
- *     logs:
- *   }
- * end *)
