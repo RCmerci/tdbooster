@@ -1,0 +1,6 @@
+(library
+ (inline_tests)
+ (name filter)
+ (libraries core deriving)
+ (preprocess
+  (pps ppx_inline_test ppx_deriving.show ppx_here)))
