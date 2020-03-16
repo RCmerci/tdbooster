@@ -2,7 +2,8 @@ open Core
 
 type elem = {
   code: string;
-  data: Filter.Type.Attributed_data.t list;
+  week_data: Filter.Type.Attributed_data.t list;
+  day_data: Filter.Type.Attributed_data.t list;
 }[@@deriving to_yojson]
 
 type output = {
@@ -17,8 +18,10 @@ let f codes output_dir refresh_data =
      let rawdata = Loader.From_txt.read_from_file (Filename.concat output_dir code)
          (Filename.concat output_dir (code ^ ".ttm")) in
      let week_k = Option.value_exn (Deriving.Unify.unify_week rawdata) in
+     let day_k = Option.value_exn (Deriving.Unify.unify_day rawdata) in
      let week_attr = Filter.Unify.unify week_k in
-     {code=code; data=week_attr})
+     let day_attr = Filter.Unify.unify day_k in
+     {code=code; week_data=week_attr; day_data=day_attr})
   in
   Yojson.Safe.to_string (output_to_yojson {data=outputlist}) |> Out_channel.print_string
 let command =
