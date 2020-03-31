@@ -50,6 +50,11 @@
   "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30|
 |-----------+------------------+---+---|")
 (defvar tdbooster--table-format "| %s | %s | %s | %s |")
+(defvar tdbooster--stat-table-header
+  "|code| %s |
+|----|")
+(defvar tdbooster--stat-table-format "| %s | %s |")
+
 
 (defun tdbooster--render-one-weekly (json)
   (let* ((code (alist-get 'code json))
@@ -82,13 +87,32 @@
 				       (tdbooster--render-one-daily e))
 				     (alist-get 'data json))))))
 
+
+(defun tdbooster--render-stat-one (json)
+  (let* ((title (seq-elt json 0))
+	 (data (seq-elt json 1))
+	 (col-titles (seq-map (lambda (e) (alist-get 'title e)) (alist-get 'column_message (seq-elt data 0)))))
+    (s-join "\n"
+	    (cons (format "\n*** %s" title)
+		  (cons (format tdbooster--stat-table-header (s-join " | " col-titles))
+		   (seq-map (lambda (js)
+			      (let ((code (alist-get 'code js))
+				    (cols (alist-get 'column_message js)))
+				(format tdbooster--stat-table-format code
+					(s-join " | " (seq-map (lambda (e) (alist-get 'value e)) cols)))))
+			    data))))))
+
+(defun tdbooster--render-stat (json)
+  (let ((data (alist-get 'data json)))
+    (s-join "\n" (seq-map #'tdbooster--render-stat-one data))))
+
 (define-derived-mode tdbooster-mode org-mode "tdbooster"
   "major mode for tdbooster"
   (read-only-mode))
 
-(defun tdbooster (refreshdata)
+(defun tdbooster-filter (refreshdata)
   "Run tdbooster and show the results in tdbooster-mode."
-  (interactive (list (yes-or-no-p "refresh datafile?")))
+  (interactive (list (yes-or-no-p "refresh datafiles?")))
   (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
 	 (buffer (get-buffer-create "*tdbooster*"))
 	 (command (format "%s %s -o %s %s"  tdbooster-bin (if refreshdata "-r" "") tdbooster-datafiles-dir args)))
@@ -109,6 +133,27 @@
       buffer
       '((display-buffer-use-some-window))))))
 
-
+(defun tdbooster-stat (refreshdata)
+  "Run tdbooster statistics and show results in tdbooster-mode"
+  (interactive (list (yes-or-no-p "refresh datafiles?")))
+  (let* ((args (s-join " " (seq-map (lambda (s) (format "-f %s" s)) tdbooster-datafiles)))
+	(buffer (get-buffer-create "*tdbooster-statistics*"))
+	(command (format "%s -s oversold %s -o %s %s" tdbooster-bin (if refreshdata "-r" "") tdbooster-datafiles-dir args)))
+    (with-current-buffer (get-buffer-create "*tdbooster-stdout*") (erase-buffer))
+    (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
+      (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
+    (setq json-string (with-current-buffer "*tdbooster-stdout*" (buffer-string)))
+    (with-current-buffer buffer
+      (read-only-mode -1)
+      (erase-buffer)
+      (insert (tdbooster--render-stat (json-read-from-string json-string)))
+      (org-table-align)
+      (tdbooster-mode))
+    (select-window
+     (display-buffer
+      buffer
+      '((display-buffer-use-some-window))))
+    )
+  )
 (provide 'tdbooster)
 ;;; tdbooster.el ends here
