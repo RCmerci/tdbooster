@@ -26,7 +26,7 @@
 (require 'seq)
 (require 'json)
 (require 's)
-
+(require 'ivy)
 
 
 (defcustom tdbooster-bin "tdbooster"
@@ -54,6 +54,8 @@
   "|code| %s |
 |----|")
 (defvar tdbooster--stat-table-format "| %s | %s |")
+
+(defvar tdbooster-query-history)
 
 
 (defun tdbooster--render-one-weekly (json)
@@ -155,5 +157,61 @@
       '((display-buffer-use-some-window))))
     )
   )
+
+(defun tdbooster--to-code (type symbol)
+  (concat (cdr (assoc type '(("SH" . "0") ("SZ" . "1") ("HK" . "hk0") ("US" . "US_")))) symbol))
+
+(defun tdbooster--query-function (data)
+  (if (s-blank-str? data)
+      '()
+    (progn
+      (setq symbol-info
+	    (with-current-buffer (url-retrieve-synchronously
+				  (format "http://quotes.money.163.com/stocksearch/json.do?type=&count=10&word=%s" data)
+				  t)
+	      (beginning-of-buffer)
+	      (search-forward "\n\n")
+	      (search-forward "(")
+	      (let* ((begin (point))
+		     (end (progn (forward-list) (point)))
+		     (json (seq-map (lambda (e)
+				      `(,(alist-get 'type e) ,(alist-get 'symbol e) ,(alist-get 'spell e) ,(alist-get 'name e)))
+				    (json-read-from-string (buffer-substring-no-properties begin end)))))
+		(kill-buffer)
+		json)))
+      (setq detail-info (tdbooster--query-detail symbol-info))
+      (seq-map (lambda (syminfo) (format "%s.%s %s %s (%+.2f)"
+    					 (car syminfo) (cadr syminfo) (caddr syminfo) (cadddr syminfo)
+    					 (* 100
+					    (alist-get 'percent (alist-get
+								 (intern (tdbooster--to-code (car syminfo) (cadr syminfo)))
+								 detail-info)
+						       0.0))))
+	       symbol-info))
+    ))
+
+(defun tdbooster--query-detail (type-symbol-list)
+  (let ((codes (seq-map (lambda (type-symbol)
+			  (tdbooster--to-code (car type-symbol) (cadr type-symbol)))
+			type-symbol-list)))
+    (with-current-buffer (url-retrieve-synchronously
+			  (format "http://api.money.126.net/data/feed/%s" (s-join "," codes)) t)
+      (beginning-of-buffer)
+      (search-forward "\n\n")
+      (search-forward "(")
+      (let* ((begin (point))
+	     (end (progn (forward-list) (point)))
+	     (json (json-read-from-string (buffer-substring-no-properties begin end))))
+
+	json))))
+
+(defun tdbooster-query (code)
+  (interactive (list (ivy-read "> " #'tdbooster--query-function
+			       :dynamic-collection t
+			       :require-match t
+			       :history 'tdbooster-query-history)))
+  (message code))
+
+
 (provide 'tdbooster)
 ;;; tdbooster.el ends here
