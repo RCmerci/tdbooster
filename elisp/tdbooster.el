@@ -197,13 +197,17 @@
     (with-current-buffer (url-retrieve-synchronously
 			  (format "http://api.money.126.net/data/feed/%s" (s-join "," codes)) t)
       (beginning-of-buffer)
+      (end-of-line)
       (search-forward "\n\n")
-      (search-forward "(")
-      (let* ((begin (point))
-	     (end (progn (forward-list) (point)))
-	     (json (json-read-from-string (buffer-substring-no-properties begin end))))
-
-	json))))
+      (condition-case nil
+	  (progn
+	    (search-forward "(")
+	    (let* ((begin (point))
+		   (end (progn (forward-list) (point)))
+		   (json (json-read-from-string (buffer-substring-no-properties begin end))))
+	      (kill-buffer)
+	      json))
+	(error nil)))))
 
 (defun tdbooster-query (code)
   (interactive (list (ivy-read "> " #'tdbooster--query-function
