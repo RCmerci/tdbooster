@@ -17,16 +17,19 @@ let f code (data:Deriving.Type.Derived_data.t list): Type.display_struct =
         let n = List.nth_exn sub_data i in
         List.nth sub_data (i+1) >>= fun n_1 ->
         if n.raw_data.closing < n_1.raw_data.closing then
-          Some `UP
-        else Some `DOWN)
+          Some (`UP, n_1.date)
+        else Some (`DOWN, n_1.date))
   in
-  let up_col, down_col = List.fold updown ~init:(0, 0)
-      ~f:(fun (up,down) e -> match e with `UP -> (up+1, down) | `DOWN -> (up, down+1))
+  let up_col, down_col, date_list = List.fold updown ~init:(0, 0, [])
+      ~f:(fun (up,down, dates) (updown, date) -> match updown with `UP -> (up+1, down, date::dates) | `DOWN -> (up, down+1, date::dates))
   in
+  let dates_str = List.map date_list ~f:Date.to_string |> List.rev |> List.to_string ~f:ident in
   let up_ratio = float_of_int up_col /. float_of_int (up_col + down_col) in
   {code;
    title="oversold";
    column_message=[
      {title="up"; value=string_of_int up_col};
      {title="down"; value=string_of_int down_col};
-     {title="up ratio";value=string_of_float up_ratio};]}
+     {title="up ratio";value=string_of_float up_ratio};
+     {title="dates";value=dates_str}
+   ]}
