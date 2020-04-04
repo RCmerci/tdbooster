@@ -18,7 +18,8 @@ module Derived_data = struct
     ; bias24: float
     ; rsi6: float
     ; rsi12: float
-    ; rsi24: float }
+    ; rsi24: float
+    ; kdj933: (float * float * float)}
   [@@deriving show]
 
   let date t = t.date

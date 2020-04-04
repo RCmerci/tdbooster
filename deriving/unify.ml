@@ -15,10 +15,11 @@ let unify (data_list : Loader.Type.raw_data list) :
   let _, rsi6 = Rsi.rsi 6 data_list |> List.unzip in
   let _, rsi12 = Rsi.rsi 12 data_list |> List.unzip in
   let _, rsi24 = Rsi.rsi 24 data_list |> List.unzip in
+  let _, kdj933 = Kdj.kdj 9 data_list |> List.unzip in
   Macd.macd_dif_dea data_list
   >>= fun macd_dif_dea ->
   let rec aux datelist  ema12 ema20 ema26 ema60 ema120 macd_dif_dea
-      data_list ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 (r : Type.Derived_data.t list) =
+      data_list ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 kdj933 (r : Type.Derived_data.t list) =
     match
       ( datelist
       , ema12
@@ -34,7 +35,8 @@ let unify (data_list : Loader.Type.raw_data list) :
       , bias24
       , rsi6
       , rsi12
-      , rsi24 )
+      , rsi24
+      , kdj933)
     with
     | ( h1 :: t1
       , h2 :: t2
@@ -51,8 +53,8 @@ let unify (data_list : Loader.Type.raw_data list) :
       , h13 :: t13
       , h14 :: t14
       , h15 :: t15
-      ) ->
-      aux t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15
+      , h16 :: t16 ) ->
+      aux t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15 t16
         ( { date= h1
           ; raw_data= h8
           ; ema12= h2
@@ -67,18 +69,19 @@ let unify (data_list : Loader.Type.raw_data list) :
           ; rsi6=h13
           ; rsi12=h14
           ; rsi24=h15
+          ; kdj933=h16
           ; dif
           ; dea
           ; macd }
           :: r )
-    | ([],[],[],[],[],[],[],[],[],[],[],[],[],[],[]) ->
+    | ([],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]) ->
       List.rev r
     | _ ->
       Debug.amf [%here] "unequal length of data";
       failwith "unequal length of data"
   in
   Some
-    (aux datelist ema12 ema20 ema26 ema60 ema120 macd_dif_dea data_list ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 [])
+    (aux datelist ema12 ema20 ema26 ema60 ema120 macd_dif_dea data_list ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 kdj933 [])
 
 let unify_day = unify
 
