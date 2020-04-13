@@ -12,12 +12,13 @@
 (package
  (name tdbooster)
  (depends
-  (ocaml (>= 4.07))
+  (ocaml (>= 4.10))
   core
   ppx_deriving
   ppx_deriving_yojson
   ppx_here
   ppx_inline_test
   ppx_jane
-  yojson)
+  yojson
+  owl)
   (synopsis "Tdbooster"))

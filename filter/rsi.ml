@@ -1,5 +1,6 @@
 open Core
-
+open Poly
+    
 let diff (deriving_data:Deriving.Type.Derived_data.t list) =
   List.map deriving_data ~f:(fun e -> (e.rsi24 -. e.rsi12, e.rsi12 -. e.rsi6))
 

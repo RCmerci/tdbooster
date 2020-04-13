@@ -1,5 +1,5 @@
 open Core
-
+open Poly
 (* https://baike.baidu.com/item/%E4%B9%96%E7%A6%BB%E7%8E%87/420286 *)
 let bias_all_days n (closing_data_list: float list): float list =
   let q = Queue.create ~capacity:(n+1) () in

@@ -1,5 +1,6 @@
 open Core
-
+open Poly
+    
 let smma n (closing_data_list : float list) : float list =
   let alpha = 1. /. (float_of_int n) in
   if List.length closing_data_list = 0 then []

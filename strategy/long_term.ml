@@ -1,4 +1,5 @@
 open Core
+open Poly
 open Type
 open Util
 open Cursor

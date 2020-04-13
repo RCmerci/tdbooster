@@ -1,5 +1,6 @@
 open Strategy.Cursor
 open Core
+open Poly    
 open Option.Monad_infix
 
 type executorResult =

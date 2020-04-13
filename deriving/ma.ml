@@ -1,4 +1,5 @@
 open Core
+open Poly    
 (* https://baike.baidu.com/item/MA指标 *)
 let ma_all_days n (closing_data_list: float list) : float list =
   let q = Queue.create ~capacity:(n+1) () in

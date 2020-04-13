@@ -3,8 +3,3 @@
  (public_name tdbooster)
  (libraries   core loader deriving strategy exec filter ppx_deriving_yojson.runtime statistics)
  (preprocess (pps ppx_jane ppx_deriving_yojson)))
-
-
-(env
- (dev
-   (ocamlopt_flags (:standard "-p"))))

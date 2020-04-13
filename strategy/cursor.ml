@@ -1,5 +1,6 @@
 open Core
-
+open Poly
+    
 module type Data_with_timestamp = sig
   type t
 

@@ -64,6 +64,6 @@ let command =
       and refresh_data = flag "-r" (no_arg) ~doc:"refresh data then save to files"
       and output_dir = flag "-o" (required string) ~doc:"output path of datafiles"
       and stats = flag "-s" (listed string) ~doc:"statistics" in
-      fun () -> f codes output_dir refresh_data stats |> ignore)
+      fun () -> f codes output_dir refresh_data stats;)
 
 let () = Command.run command
