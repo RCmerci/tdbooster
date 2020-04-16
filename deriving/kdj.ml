@@ -49,7 +49,8 @@ let%test "test-kdj" =
     Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data) []
   in
-  let datal' = Dataframe.tail (Dataframe.row_num datal - 4001) datal (* ~pos:4000 ~len:(List.length datal - 4001)  *)in
-  List.last_exn (kdj_all_days 9 datal') |> fun (_, (k,d,j))-> int_of_float k = 56 && int_of_float d = 65 && int_of_float j = 38
+  let datal' = Dataframe.tail 4000  datal (* ~pos:4000 ~len:(List.length datal - 4001)  *)in
+  List.last_exn (kdj_all_days 9 datal') |> fun (_, (k,d,j))->
+  int_of_float k = 65 && int_of_float d = 65 && int_of_float j = 64
 
 let kdj n (data_list:Loader.Type.raw_data): (Date.t * (float * float * float)) list = kdj_all_days n data_list

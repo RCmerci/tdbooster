@@ -89,7 +89,7 @@ let%test "test-read_from_string_lines" =
   let datal = read_from_string_lines (String.split_lines Testdata.Data.data) (String.split_lines Testdata.Data.ttm_data) in
   Dataframe.row_num datal > 0
   &&
-  let last = Dataframe.get_row  datal (Dataframe.row_num datal) in
+  let last = Dataframe.get_row  datal (Dataframe.row_num datal-1) in
   Date.equal (Type.date last) (Date.of_string "2019-10-11")
 
 
