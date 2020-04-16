@@ -1,6 +1,8 @@
 open Core
 open Poly
-    
+open Owl
+
+
 let smma n (closing_data_list : float list) : float list =
   let alpha = 1. /. (float_of_int n) in
   if List.length closing_data_list = 0 then []
@@ -17,7 +19,7 @@ let smma n (closing_data_list : float list) : float list =
     in
     aux r nth (List.nth_exn r 0)
 
-let rsi_all_days n (closing_data_list:float list): float list =
+let rsi_all_days n (closing_data_list:float array): float list =
   let l = List.map2_exn
       (List.sub closing_data_list ~pos:0 ~len:(List.length closing_data_list - 1))
       (Option.value (List.tl closing_data_list) ~default:[])
@@ -34,7 +36,7 @@ let%test "test-rsi" =
   let datal =
     Loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data) [] in
-  let closing_data_list = List.map datal ~f:(fun d -> d.closing) in
+  let closing_data_list = Loader.Type.close_col datal in
   let rsi6_all = rsi_all_days 6 closing_data_list in
   60.763000 = (Float.round_decimal (List.last_exn rsi6_all) ~decimal_digits:3)
 
