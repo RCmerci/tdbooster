@@ -30,7 +30,10 @@ let ttm_col t = Dataframe.(unpack_float_series (get_col t 5))
 let days_col t = Dataframe.(unpack_int_series (get_col t 6))
 
 
-
+let date_string t = match Array.nget t 0 with
+  | Dataframe.String d -> d
+  | _ -> failwith "unreachable"
+           
 let date t = match Array.nget t 0 with
   | Dataframe.String d -> Date.of_string d
   | _ -> failwith "unreachable"

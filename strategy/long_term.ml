@@ -26,7 +26,7 @@ let month_k_buy c _ _ :(ctx, month_to_week_ctx) buy_action Log_warning.LogAndWar
     else
       warn (Printf.sprintf "[%s] 滚动市盈率(month): %.2f"
               (Data_cursor.datestring c)
-              (Option.value ~default:0. (Data_cursor.current c).raw_data.ttm)) >>= fun _ ->
+              (Loader.Type.ttm (Data_cursor.current c).raw_data)) >>= fun _ ->
       return (Buy (c, None, ()))
   else return (Buy_continue None)
 
@@ -40,11 +40,11 @@ let day_k_buy c ctx _week_ctx : (ctx, day_to_sell_ctx) buy_action Log_warning.Lo
     | Buy_continue (Some high_point_c) -> Some (Printf.sprintf "[%s] 找到日k高点(%s/%.2f)"
                                                   (Data_cursor.datestring c)
                                                   (Data_cursor.datestring high_point_c)
-                                                  (Data_cursor.current high_point_c).raw_data.high)
+                                                  (Loader.Type.high (Data_cursor.current high_point_c).raw_data))
     | Buy_skip_to (Some high_point_c, _) -> Some (Printf.sprintf "[%s] 找到日k高点(%s/%.2f)"
                                                     (Data_cursor.datestring c)
                                                     (Data_cursor.datestring high_point_c)
-                                                    (Data_cursor.current high_point_c).raw_data.high)
+                                                    (Loader.Type.high (Data_cursor.current high_point_c).raw_data))
     | _ -> None
   in
   match ctx with
@@ -68,14 +68,14 @@ let day_k_buy c ctx _week_ctx : (ctx, day_to_sell_ctx) buy_action Log_warning.Lo
                (Data_cursor.datestring c) (Data_cursor.datestring high_point_c)) >>= fun _ ->
       return ( Buy_quit c)
     else if
-      (Data_cursor.current high_point_c).raw_data.high
-      < (Data_cursor.current c).raw_data.high
+      (Loader.Type.high (Data_cursor.current high_point_c).raw_data)
+      < (Loader.Type.high (Data_cursor.current c).raw_data)
     then (
       log (Printf.sprintf "[%s] 突破日k高点(%s),买入"
              (Data_cursor.datestring c) (Data_cursor.datestring high_point_c)) >>= fun _ ->
       warn (Printf.sprintf "[%s] 滚动市盈率: %.2f"
-              (Data_cursor.datestring c) (Option.value ~default:0. ((Data_cursor.current c).raw_data.ttm))) >>= fun _ ->
-      return (Buy (c, Some (Data_cursor.current high_point_c).raw_data.high, ()) ))
+              (Data_cursor.datestring c) (Loader.Type.ttm (Data_cursor.current c).raw_data)) >>= fun _ ->
+      return (Buy (c, Some (Loader.Type.high (Data_cursor.current high_point_c).raw_data), ()) ))
     else return (Buy_continue (Some high_point_c))
 
 
@@ -90,7 +90,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
     (* 买入时候价格的80%作为第一个低点(在发现第一个周k低点之前) *)
     Option.value_map
       (Option.bind (Data_cursor.find buy_c ~f:(fun c ->
-           (Data_cursor.current c).raw_data.low < buy_c_low_price buy_price ))
+           (Loader.Type.low (Data_cursor.current c).raw_data) < buy_c_low_price buy_price ))
           ~f:(fun sellc -> Some (sellc, buy_c_low_price  buy_price,
                                  Printf.sprintf "[%s] 低于买入价格(%f)*80%%, 卖出"
                                    (Data_cursor.datestring sellc)
@@ -103,7 +103,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
       (* 检查第一个周k低点之前的价格是否有低于买入价格的80% *)
     let r1 = (Option.bind
          (Data_cursor.find ~end':h buy_c ~f:(fun c ->
-              (Data_cursor.current c).raw_data.low < buy_c_low_price buy_price))
+              (Loader.Type.low (Data_cursor.current c).raw_data) < buy_c_low_price buy_price))
          ~f:(fun e ->
              logs1 := (Printf.sprintf "[%s] 低于买入价格(%f)*80%%, 卖出"
                                                           (Data_cursor.datestring e)
@@ -112,7 +112,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
 
       (* 检查后续低于最近一个周k低点 *)
     let r2 = (List.find_mapi low_list ~f:(fun ind c ->
-           let low_price = (Data_cursor.current c).raw_data.low in
+           let low_price = (Loader.Type.low (Data_cursor.current c).raw_data) in
            let ratio = if low_price < 0. then 1.02 else 0.98 in
            let date =
              (Data_cursor.current c).date
@@ -125,7 +125,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) 
                           ?end':(List.nth low_list (ind + 1))
                           day_c'
                           ~f:(fun e ->
-                              (Data_cursor.current e).raw_data.low < low_price *. ratio))
+                              (Loader.Type.low (Data_cursor.current e).raw_data) < low_price *. ratio))
              ~f:(fun sellc ->
                  logs2 := (Printf.sprintf "[%s] 低于周k低点价格(%s) %f*0.98=%f, 卖出"
                             (Data_cursor.datestring sellc) (Data_cursor.datestring c)

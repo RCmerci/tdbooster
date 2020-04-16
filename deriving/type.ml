@@ -3,7 +3,7 @@ open Core
 module Derived_data = struct
   type t =
     { date: Date.t
-    ; raw_data: Loader.Type.raw_data
+    ; raw_data: Owl.Dataframe.elt array [@opaque]
     ; ma20: float
     ; ma60: float
     ; ma120: float
@@ -26,3 +26,4 @@ module Derived_data = struct
 
   let to_string = show
 end
+

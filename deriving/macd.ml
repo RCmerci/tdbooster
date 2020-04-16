@@ -1,6 +1,7 @@
 open Core
 open Option.Monad_infix
-
+open Owl
+    
 (* https://baike.baidu.com/item/MACD%E6%8C%87%E6%A0%87?fromtitle=MACD&fromid=3334786 *)
 
 let dif ~ema12_list ~ema26_list : float list option =
@@ -47,7 +48,7 @@ let%test "test-dif-dea-macd" =
   && int_of_float (List.nth_exn dea_list 4000) = 18
   && int_of_float (List.nth_exn macd_list 4000) = 4
 
-let macd_dif_dea (data_list : Loader.Type.raw_data list) :
+let macd_dif_dea (data_list : Loader.Type.raw_data) :
   (Date.t * float * float * float) list option =
   let time_list, ema12_list = List.unzip (Ema.ema 12 data_list) in
   let ema26_list = List.map (Ema.ema 26 data_list) ~f:snd in
@@ -64,7 +65,7 @@ let macd_dif_dea (data_list : Loader.Type.raw_data list) :
     Debug.amf [%here]
       "unequal length of time_list(%d), macd_list(%d), dif_list(%d), \
        dea_list(%d), raw_data_list len: %d"
-      l1 l2 l3 l4 (List.length data_list) ;
+      l1 l2 l3 l4 (Dataframe.row_num data_list) ;
     None )
   else
     let zipped =

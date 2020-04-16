@@ -25,7 +25,7 @@ let week_k_buy c _ month_ctx : (ctx, week_to_day_ctx) buy_action Log_warning.Log
   return (Buy (c, None, month_ctx))
 
 let day_k_buy c _ctx _week_ctx : (ctx, day_to_sell_ctx) buy_action Log_warning.LogAndWarnWriter.m =
-  return (Buy (c, Some (Data_cursor.current c).raw_data.closing, ()))
+  return (Buy (c, Some (Loader.Type.close (Data_cursor.current c).raw_data), ()))
 
 
 let sell = Long_term.sell

@@ -1,7 +1,8 @@
 open Core
 open Option.Monad_infix
-
-let unify (data_list : Loader.Type.raw_data list) :
+open Owl
+    
+let unify (data_list : Loader.Type.raw_data) :
   Type.Derived_data.t list option =
   let datelist, ema12 = Ema.ema 12 data_list |> List.unzip in
   let _, ema20 = Ema.ema 20 data_list |> List.unzip in
@@ -81,12 +82,12 @@ let unify (data_list : Loader.Type.raw_data list) :
       failwith "unequal length of data"
   in
   Some
-    (aux datelist ema12 ema20 ema26 ema60 ema120 macd_dif_dea data_list ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 kdj933 [])
+    (aux datelist ema12 ema20 ema26 ema60 ema120 macd_dif_dea (Array.to_list (Dataframe.to_rows data_list)) ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 kdj933 [])
 
 let unify_day = unify
 
-let unify_week (data_list : Loader.Type.raw_data list) =
+let unify_week (data_list : Loader.Type.raw_data) =
   unify (Week_k.week_k data_list)
 
-let unify_month (data_list : Loader.Type.raw_data list) =
+let unify_month (data_list : Loader.Type.raw_data) =
   unify (Month_k.month_k data_list)

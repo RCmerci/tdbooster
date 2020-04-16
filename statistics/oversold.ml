@@ -9,14 +9,14 @@ let f code (data:Deriving.Type.Derived_data.t list): Type.display_struct =
       ~f:(fun i ->
           let n = List.nth_exn sub_data i in
           List.nth sub_data (i+1) >>= fun n_1 ->
-          let ratio = (n_1.raw_data.closing -. n.raw_data.closing) /. n.raw_data.closing in
+          let ratio = (Loader.Type.close (n_1.raw_data) -. (Loader.Type.close n.raw_data)) /. (Loader.Type.close n.raw_data) in
           if ratio < (-0.05) then Some (i+1) else None)
   in
   let updown = List.filter_map down_lt_5
     ~f:(fun i ->
         let n = List.nth_exn sub_data i in
         List.nth sub_data (i+1) >>= fun n_1 ->
-        if n.raw_data.closing < n_1.raw_data.closing then
+        if (Loader.Type.close n.raw_data) < (Loader.Type.close n_1.raw_data) then
           Some (`UP, n_1.date)
         else Some (`DOWN, n_1.date))
   in

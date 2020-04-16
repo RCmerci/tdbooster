@@ -55,7 +55,7 @@ let k_high_point (c : Data_cursor.t) n :
     let current = Data_cursor.current c in
     let high_c_data = Data_cursor.current high_c in
     let high_c' =
-      if current.raw_data.high > high_c_data.raw_data.high then c else high_c
+      if (Loader.Type.high current.raw_data) > (Loader.Type.high high_c_data.raw_data) then c else high_c
     in
     let continue_low_macd_num' =
       if current.macd < 0. then continue_low_macd_num + 1 else 0
@@ -120,8 +120,8 @@ let ascending_week_k_high_point_list start end' =
         ~init:(h, [h])
         ~f:(fun (last_high, r) e ->
             if
-              (Data_cursor.current e).raw_data.high
-              > (Data_cursor.current last_high).raw_data.high
+              (Loader.Type.high (Data_cursor.current e).raw_data)
+              > (Loader.Type.high (Data_cursor.current last_high).raw_data)
             then (e, e :: r)
             else (last_high, r) )
     in
@@ -139,8 +139,8 @@ let week_k_low_point start end' =
         Some e
       | Some low ->
         if
-          (Data_cursor.current e).raw_data.low
-          < (Data_cursor.current low).raw_data.low
+          (Loader.Type.low (Data_cursor.current e).raw_data)
+          < (Loader.Type.low (Data_cursor.current low).raw_data)
         then Some e
         else r )
 
@@ -219,7 +219,7 @@ let%test_module _ =
         ~f:(fun a ->
             ( (Data_cursor.current a).date |> Date.to_string )
             ^ ":"
-            ^ string_of_float (Data_cursor.current a).raw_data.high )
+            ^ string_of_float (Loader.Type.high (Data_cursor.current a).raw_data) )
         high_list
 
     let%test "test-week_k_low_point_list" =
@@ -237,6 +237,6 @@ let%test_module _ =
             (  (Data_cursor.current a).date
                |> Date.to_string )
             ^ ":"
-            ^ string_of_float (Data_cursor.current a).raw_data.low )
+            ^ string_of_float (Loader.Type.low (Data_cursor.current a).raw_data) )
         low_list
   end )
