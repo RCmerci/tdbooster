@@ -1,18 +1,9 @@
 open Core
 open Owl     
-type raw_data1 =
-  { date: Date.t
-  (* ; time: Time.t (\* 日k:当天, 周k:周第一天, 月k:月第一天 *\) *)
-  ; opening: float (* 开盘 *)
-  ; high: float (* 最高 *)
-  ; low: float (* 最低 *)
-  ; closing: float (* 收盘 *)
-  ; ttm: float option     (* 滚动市盈率 *)
-  ; days: int (* 日k: 1, 周k: 本周交易天数, 月k: 本月交易天数 *)
-  }
-[@@deriving show]
 
-
+(* date: 日k:当天, 周k:周第一天, 月k:月第一天 
+ * days: 日k: 1, 周k: 本周交易天数, 月k: 本月交易天数 
+ * [|"date";"open";"high";"low";"close";"ttm";"days"|]  *)
 type raw_data = Dataframe.t
 
 let date_col t = Dataframe.(unpack_string_series (get_col t 0)) |> Array.map ~f:Date.of_string

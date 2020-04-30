@@ -32,6 +32,10 @@ module Make (Data : Data_with_timestamp) = struct
       ({t with current= t.k_list_len - 1}, t.k_list_len - 1 - t.current)
     else ({t with current= dst}, n)
 
+  (* 
+     [1;2;3;4]
+          ^ 
+     left t 2 = [1;2]   *)
   let left t n =
     if n < 0 then []
     else
@@ -114,6 +118,16 @@ module Make (Data : Data_with_timestamp) = struct
     in
     aux t
 
+  let sub ?end_date start_date t : (Date.t * Data.t) list =
+    let open Option.Monad_infix in
+    let r_option =
+      let end_c = end_date >>= goto_date t in
+      goto_date t start_date >>= fun start_c ->
+      Some (fold ?end':end_c start_c ~init:[] ~f:(fun r c -> (date c, current c) :: r) |> List.rev)
+    in
+    Option.value r_option ~default:[]
+    
+  
   let to_k_list t = t.k_list
 end
 
@@ -170,5 +184,27 @@ let%test "test-cursor-goto_date" =
   C.current dst1 = Date.of_string "2012-12-04"
   && C.current dst2 = Date.of_string "2012-11-01"
   && Option.is_none dst3
+
+let%test "test-cursor-sub" =
+  let module D = struct
+    type t = Date.t
+
+    let date t = t
+
+    let to_string _ = ""
+  end in
+  let module C = Make (D) in
+  let days =
+    List.map ~f:Date.of_string
+      ["2012-11-01"; "2012-12-02"; "2012-12-04"; "2012-12-05"]
+  in
+  let data = C.create_exn days in
+  let r1 = C.sub (Date.of_string "2012-12-03") data in
+  let r2 = C.sub (Date.of_string "2012-12-04") data in
+  let r3 = C.sub (Date.of_string "2012-12-02") data in
+  fst (List.unzip r1) = List.map ["2012-12-04"; "2012-12-05"] ~f:Date.of_string &&
+  fst (List.unzip r2) = List.map ["2012-12-04"; "2012-12-05"] ~f:Date.of_string &&
+  fst (List.unzip r3) = List.map ["2012-12-02"; "2012-12-04"; "2012-12-05"] ~f:Date.of_string
+
 
 module Data_cursor = Make (Deriving.Type.Derived_data)
