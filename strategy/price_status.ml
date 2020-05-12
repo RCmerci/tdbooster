@@ -1,6 +1,6 @@
 open Core
 open Poly
-
+open Owl
 
 let diff open' close high low =
   let (up, down) = if open' > close then (open', close) else (close, open') in
@@ -9,13 +9,13 @@ let diff open' close high low =
   let d3 = down -. low in
   (d1, d2, d3)
 (* 
-   X: up
-   O: down
+   U: up
+   D: down
  *)
 
 (* |  |
    |  |
-   X  O
+   U  D
    |  |
 *)
 let status1 ?(ratio=2.) open' close high low  =
@@ -25,7 +25,7 @@ let status1 ?(ratio=2.) open' close high low  =
                       
 (* |  |
    |  |
-   X  O
+   U  D
    |  |
    |  |
  *)
@@ -35,7 +35,7 @@ let status2 ?(ratio=2.) open' close high low =
   d1 /. d2 > ratio && d3 /. d2 > ratio
 
 (* |  |  
-   X  O
+   U  D
    |  |
    |  |
 *)
@@ -46,8 +46,8 @@ let status3 ?(ratio=2.) open' close high low =
 
 (* 
    |
-   X
-   X
+   U
+   U
    |
  *)
 let status4 ?(ratio=2.) open' close high low  =
@@ -58,8 +58,8 @@ let status4 ?(ratio=2.) open' close high low  =
 
 (* 
    |
-   O
-   O
+   D
+   D
    |
  *)
 let status5 ?(ratio=2.) open' close high low  =
@@ -74,12 +74,12 @@ let status5 ?(ratio=2.) open' close high low  =
    \       c
      \    /
        \/  |         |
-        |  \-------> X
-        V            X
+        |  \-------> U
+        V            U
                      | 
       |  |  |  |
-      |or|orX  O
-      X  O  |or|
+      |or|orU  D
+      U  D  |or|
       |  |  |  |
  *)
 let status_combine_1 c =
@@ -87,17 +87,17 @@ let status_combine_1 c =
   let l = Cursor.Data_cursor.left c 4 @ [Cursor.Data_cursor.current c] in
   let fst4 = List.sub l ~pos:0 ~len:4 in
   let is_down_head = List.fold_until fst4 ~init:99999. ~f:(fun r e ->
-      if Loader.Type.high e.raw_data < r
+      if Loader.Type.close e.raw_data < r
       then Continue_or_stop.Continue (Loader.Type.close e.raw_data)
       else Continue_or_stop.Stop false)
     ~finish:(fun _ -> true) in
   let e4 = List.nth_exn l 3 in
   let e4' = List.map [status1; status2; status3] ~f:(fun f ->
       f (opening e4.raw_data) (close e4.raw_data) (high e4.raw_data) (low e4.raw_data))
-            |> List.for_all ~f:ident in
+            |> List.find ~f:ident |> Option.is_some in
   let e5 = List.nth_exn l 4 in
   let e5' = status4 (opening e5.raw_data) (close e5.raw_data) (high e5.raw_data) (low e5.raw_data) in
-  let e45 = (close e4.raw_data) < (close e5.raw_data) in 
+  let e45 = (close e4.raw_data) < (close e5.raw_data) in
   is_down_head && e4' && e5' && e45
   
 (* 
@@ -107,7 +107,7 @@ let status_combine_1 c =
    k1 k2
 
    - k2.close < k1.close - 5%
-   - k2.close - k2.open > 4%
+   - k2.open - k2.close > 4%
    - mid(k1.open, k1.close) > k2.close
  *)
 
@@ -141,8 +141,114 @@ let%test "test-status4" =
 let%test "test-status5" =
   status5 12.1 10. 13. 9.
 
-(* TODO:  *)
-let%test "test-status_combine_1" = false
-let%test "test-status_combine_2" = false
   
+let%test_module _ =
+  (module struct
+    let a1: Deriving.Type.Derived_data.t = {
+      date=Date.of_string "2012-01-01";
+      (* [|"date";"open";"high";"low";"close";"ttm";"days"|] *)
+      raw_data=[|
+        Dataframe.String "2012-01-01";
+          Dataframe.Float 1.;
+          Dataframe.Float 1.;
+          Dataframe.Float 1.;
+          Dataframe.Float 10.;
+          Dataframe.Float 0.;
+          Dataframe.Int 1;
+        |];
+      ma20=0. ;
+      ma60=0. ;
+      ma120=0. ;
+      ema12=0. ;
+      ema20=0. ;
+      ema26=0. ;
+      ema60=0. ;
+      ema120=0. ;
+      dif=0. ;
+      dea=0. ;
+      macd=0. ;
+      bias24=0. ;
+      rsi6=0. ;
+      rsi12=0. ;
+      rsi24=0. ;
+      kdj933=(0., 0., 0.) ;
+    } 
+    let a2 = {a1 with
+              date=Date.of_string "2012-01-02";
+              raw_data=[|
+                Dataframe.String "2012-01-02";
+                Dataframe.Float 1.;
+                Dataframe.Float 1.;
+                Dataframe.Float 1.;
+                Dataframe.Float 9.;
+                Dataframe.Float 0.;
+                Dataframe.Int 1;
+              |]}
+    let a3 = {a1 with
+              date=Date.of_string "2012-01-03";
+              raw_data=[|
+                Dataframe.String "2012-01-03";
+                Dataframe.Float 1.;
+                Dataframe.Float 1.;
+                Dataframe.Float 1.;
+                Dataframe.Float 8.;
+                Dataframe.Float 0.;
+                Dataframe.Int 1;
+              |]}
+    let a4 = {a1 with
+              date=Date.of_string "2012-01-04";
+              raw_data=[|
+                Dataframe.String "2012-01-04";
+                Dataframe.Float 6.;
+                Dataframe.Float 10.;
+                Dataframe.Float 3.;
+                Dataframe.Float 7.;
+                Dataframe.Float 0.;
+                Dataframe.Int 1;
+              |]}
+    let a5 = {a1 with
+              date=Date.of_string "2012-01-05";
+              raw_data=[|
+                Dataframe.String "2012-01-05";
+                Dataframe.Float 5.;
+                Dataframe.Float 11.;
+                Dataframe.Float 4.;
+                Dataframe.Float 10.;
+                Dataframe.Float 0.;
+                Dataframe.Int 1;
+              |]}
+    let b1 = {a1 with
+              date=Date.of_string "2012-01-05";
+              raw_data=[|
+                Dataframe.String "2012-01-05";
+                Dataframe.Float 9.;
+                Dataframe.Float 11.;
+                Dataframe.Float 4.;
+                Dataframe.Float 10.;
+                Dataframe.Float 0.;
+                Dataframe.Int 1;
+              |]
+             }
+    let b2 = {a1 with
+              date=Date.of_string "2012-01-06";
+              raw_data=[|
+                Dataframe.String "2012-01-06";
+                Dataframe.Float 11.;
+                Dataframe.Float 11.;
+                Dataframe.Float 4.;
+                Dataframe.Float 9.;
+                Dataframe.Float 0.;
+                Dataframe.Int 1;
+              |]
+             }             
+    let c1 = Option.value_exn (Cursor.Data_cursor.create [a1;a2;a3;a4;a5])
+    let c2 = Option.value_exn (Cursor.Data_cursor.create [b1;b2])
+    let%test "test-status_combine_1" = status_combine_1 c1
+    let%test "test-status_combine_2" =
+      let c2', _ = Cursor.Data_cursor.move c2 1 in
+      status_combine_2 c2'
+  end )
   
+
+
+
