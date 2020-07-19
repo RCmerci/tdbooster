@@ -42,6 +42,16 @@ module Make (Data : Data_with_timestamp) = struct
       let left_index = if t.current - n >= 0 then t.current - n else 0 in
       List.slice t.k_list left_index t.current
 
+  (* 
+     [1;2;3;4]
+          ^ 
+     left t 2 = [2;3]   *)
+  let left_current t n =
+    if n < 0 then []
+    else
+      let left_index = if t.current - n + 1 >= 0 then t.current - n + 1 else 0 in
+      List.slice t.k_list left_index (t.current+1)
+  
   let right t n =
     if n < 0 then []
     else
@@ -51,6 +61,15 @@ module Make (Data : Data_with_timestamp) = struct
       in
       List.sub t.k_list ~pos:(t.current + 1) ~len:n'
 
+  let right_current t n =
+    if n < 0 then []
+    else
+      let n' =
+        if t.current + n - 1 < t.k_list_len then n
+        else t.k_list_len - 1 - t.current
+      in
+      List.sub t.k_list ~pos:t.current ~len:n'
+  
   let current t = List.nth_exn t.k_list t.current
 
   let date t = Data.date (current t)
@@ -147,6 +166,7 @@ let%test_unit "test-cursor" =
   let t = C.create_exn [now] in
   let t1, _ = C.move t 1 in
   let t2 = C.create_exn [now; now_1; now_2; now_3] in
+  let t3, _ = C.move t2 1 in
   C.left t1 1 |> ignore ;
   C.left t1 0 |> ignore ;
   C.right t1 1 |> ignore ;
@@ -158,7 +178,20 @@ let%test_unit "test-cursor" =
   C.right t2 0 |> ignore ;
   C.right t2 1 |> ignore ;
   C.right t2 2 |> ignore ;
-  C.right t2 3 |> ignore
+  C.right t2 3 |> ignore ;
+  assert (C.left_current t2 4 = [now]);
+  assert (C.left_current t2 3 = [now]);
+  assert (C.left_current t2 2 = [now]);
+  assert (C.left_current t2 1 = [now]);
+  assert (C.left_current t2 0 = []);
+  assert (C.left_current t3 4 = [now; now_1]);
+  assert (C.left_current t3 3 = [now; now_1]);
+  assert (C.left_current t3 2 = [now; now_1]);
+  assert (C.left_current t3 1 = [now_1]);
+  assert (C.left_current t3 0 = []);
+  assert (C.right_current t2 4 = [now; now_1; now_2; now_3]);
+  assert (C.right_current t2 3 = [now; now_1; now_2]);
+  assert (C.right_current t2 2 = [now; now_1])
 
 let%test "test-cursor-goto_date" =
   let module D = struct

@@ -47,9 +47,9 @@
 
 
 (defvar tdbooster--table-header
-  "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30|
+  "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30| ma up| ma arranged| price<ma20| price(-20d)|price(-60d)|price(-120d)|
 |-----------+------------------+---+---|")
-(defvar tdbooster--table-format "| %s | %s | %s | %s |")
+(defvar tdbooster--table-format "| %s | %s | %s | %s | %s | %s | %s | %s(%f) | %s(%f) | %s(%f) |")
 (defvar tdbooster--stat-table-header
   "|code| %s |
 |----|")
@@ -64,8 +64,20 @@
 	 (weeklast (seq-elt (reverse weekdata) 0))
 	 (rsi_golden_cross (equal t (alist-get 'rsi_golden_cross weeklast)))
 	 (rsi6_lt_20 (equal t (alist-get 'rsi6_lt_20 weeklast)))
-	 (rsi6_lt_30 (equal t (alist-get 'rsi6_lt_30 weeklast))))
-    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30)))
+	 (rsi6_lt_30 (equal t (alist-get 'rsi6_lt_30 weeklast)))
+	 (ma_up (equal t (alist-get 'ma_up weeklast)))
+	 (ma_arranged (equal t (alist-get 'ma_arranged weeklast)))
+	 (price<ma20 (equal t (alist-get 'price_less_ma20 weeklast)))
+	 (price_before_20_price (seq-elt (alist-get 'price_before_20 weeklast) 0))
+	 (price_before_20_date (seq-elt (alist-get 'price_before_20 weeklast) 1))
+	 (price_before_60_price (seq-elt (alist-get 'price_before_60 weeklast) 0))
+	 (price_before_60_date (seq-elt (alist-get 'price_before_60 weeklast) 1))
+	 (price_before_120_price (seq-elt (alist-get 'price_before_120 weeklast) 0))
+	 (price_before_120_date (seq-elt (alist-get 'price_before_120 weeklast) 1)))
+    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20
+	    price_before_20_date price_before_20_price
+	    price_before_60_date price_before_60_price
+	    price_before_120_date price_before_120_price)))
 
 (defun tdbooster--render-one-daily (json)
   (let* ((code (alist-get 'code json))
@@ -73,8 +85,20 @@
 	 (daylast (seq-elt (reverse daydata) 0))
 	 (rsi_golden_cross (equal t (alist-get 'rsi_golden_cross daylast)))
 	 (rsi6_lt_20 (equal t (alist-get 'rsi6_lt_20 daylast)))
-	 (rsi6_lt_30 (equal t (alist-get 'rsi6_lt_30 daylast))))
-    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30)))
+	 (rsi6_lt_30 (equal t (alist-get 'rsi6_lt_30 daylast)))
+	 (ma_up (equal t (alist-get 'ma_up daylast)))
+	 (ma_arranged (equal t (alist-get 'ma_arranged daylast)))
+	 (price<ma20 (equal t (alist-get 'price_less_ma20 daylast)))
+	 (price_before_20_price (seq-elt (alist-get 'price_before_20 daylast) 0))
+	 (price_before_20_date (seq-elt (alist-get 'price_before_20 daylast) 1))
+	 (price_before_60_price (seq-elt (alist-get 'price_before_60 daylast) 0))
+	 (price_before_60_date (seq-elt (alist-get 'price_before_60 daylast) 1))
+	 (price_before_120_price (seq-elt (alist-get 'price_before_120 daylast) 0))
+	 (price_before_120_date (seq-elt (alist-get 'price_before_120 daylast) 1)))
+    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20
+	    price_before_20_date price_before_20_price
+	    price_before_60_date price_before_60_price
+	    price_before_120_date price_before_120_price)))
 
 (defun tdbooster--render-all-weekly (json)
   (s-join "\n" (cons "\n** WEEK"

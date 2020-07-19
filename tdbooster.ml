@@ -28,7 +28,14 @@ let filter code day_k week_k =
   let week_attr = Filter.Unify.unify week_k in
   {code;week_data=week_attr;day_data=day_attr}
 
-let f codes output_dir refresh_data stats =
+let backtest code strategy rawdata =
+  let module S = Exec.Executor.Make(Strategy.Medium_term) in
+  let exec_t = Option.value_exn (S.create rawdata) in
+  S.exec_sequence strategy exec_t
+  |> Exec.Executor.to_output code
+  |> Exec.Output.to_yojson
+  
+let f codes output_dir refresh_data stats backtest =
   let k = List.map codes ~f:(fun code ->
       if refresh_data then
           Loader.From_baostock.run_py_script ~code ~output_dir;
@@ -40,8 +47,12 @@ let f codes output_dir refresh_data stats =
      (code, (day_k, week_k)))
   in
   let m = Map.of_alist_exn (module String) k in
+  
   let js =
-    if List.length stats = 0
+    if List.length backtest > 0
+    then
+      Yojson.Safe.from_string "{\"backtest\": true}"
+    else if List.length stats = 0
     then
       let data = Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k) -> filter code day_k week_k) |> Map.data in
       output_to_yojson {data}
@@ -56,6 +67,9 @@ let f codes output_dir refresh_data stats =
       stat_output_to_yojson {data}
   in
   Yojson.Safe.to_string js |> Out_channel.print_string
+
+
+
 let command =
   Command.basic ~summary:"Tdbooster"
     ~readme:(fun () -> "More detailed information")
@@ -63,7 +77,8 @@ let command =
       let%map_open codes = flag "-f" (listed string) ~doc:""
       and refresh_data = flag "-r" (no_arg) ~doc:"refresh data then save to files"
       and output_dir = flag "-o" (required string) ~doc:"output path of datafiles"
-      and stats = flag "-s" (listed string) ~doc:"statistics" in
-      fun () -> f codes output_dir refresh_data stats;)
+      and stats = flag "-s" (listed string) ~doc:"statistics"
+      and backtest = flag "-t" (listed string) ~doc:"back testing a strategy" in
+      fun () -> f codes output_dir refresh_data stats backtest;)
 
 let () = Command.run command

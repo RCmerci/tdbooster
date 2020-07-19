@@ -14,6 +14,7 @@ module LogAndWarnWriter :
   sig
     type 'a m
     val log : string -> unit m
+    val logf: ('a -> string, unit, string) format -> 'a -> unit m
     val warn : string -> unit m
     val ( >>= ) : 'a m -> ('a -> 'b m) -> 'b m
     val return : 'a -> 'a m

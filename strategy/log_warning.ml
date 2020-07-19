@@ -21,6 +21,8 @@ module LogAndWarnWriter : sig
 
   val log : string -> unit m
 
+  val logf: ('a -> string, unit, string) format -> 'a -> unit m
+  
   val warn : string -> unit m
 
   val ( >>= ) : 'a m -> ('a -> 'b m) -> 'b m
@@ -33,6 +35,8 @@ end = struct
 
   let log s = ([s], [], ())
 
+  let logf f s = ([Printf.sprintf f s], [], ())
+  
   let warn s = ([], [s], ())
 
   let ( >>= ) m f =

@@ -217,22 +217,3 @@ module Make (St : Strategy.Type.Strategy) = struct
 end
 
 
-module type Arrow = sig
-  type ('a, 'b) t
-  val arr: ('a -> 'b) -> ('a, 'b) t
-  val first: ('a, 'b) t -> (('a*'c), ('b*'c)) t
-  val ( >>> ) :  ('a, 'b) t -> ('b, 'c) t -> ('a, 'c) t
-end
-
-module ArrowMake(A: Arrow) = struct
-  include A
-
-  let ( *** ) f g =
-    let swap (a, b) = (b, a) in
-    first f >>> arr swap >>> first g >>> arr swap
-
-  let ( &&& ) f g =
-    arr (fun a -> (a, a)) >>> (f *** g)
-
-  let second f  =  (arr (fun a -> a)) *** f
-end
