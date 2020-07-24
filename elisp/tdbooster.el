@@ -45,6 +45,34 @@
   :type '(repeat string)
   :group 'tdbooster)
 
+(defvar tdbooster-org-headers "#+LATEX_HEADER: \\usepackage{pgfplots}
+#+PROPERTY: header-args:latex :headers '(\"\\\\usepackage{tikz}\") :fit yes :imagemagick yes :iminoptions -density 300 :imoutoptions
+#+OPTIONS: tex:imagemagick
+")
+(defvar tdbooster-marketinfo-table "
+\\begin{center}
+\\begin{tabular}{ | c | c | c | }
+& 120d & 20d \\\\
+\\hline
+%s
+\\hline
+\\end{tabular}
+\\end{center}
+
+")
+(defvar tdbooster-marketinfo "
+{\\huge %s} &
+\\begin{tikzpicture}
+	\\begin{axis}[hide x axis, hide y axis, height=3cm, width=7cm]
+	\\addplot+[mark=., color=black] coordinates { %s };
+	\\end{axis}
+\\end{tikzpicture} &
+\\begin{tikzpicture}
+	\\begin{axis}[hide x axis, hide y axis, height=3cm, width=7cm]
+	\\addplot+[mark=*, mark size=0.8pt, color=black] coordinates { %s };
+	\\end{axis}
+\\end{tikzpicture} \\\\
+")
 
 (defvar tdbooster--table-header
   "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30| ma up| ma arranged| price<ma20| price(-20d)|price(-60d)|price(-120d)|
@@ -132,6 +160,23 @@
   (let ((data (alist-get 'data json)))
     (s-join "\n" (seq-map #'tdbooster--render-stat-one data))))
 
+(defun tdbooster--render-marketinfo-one (data)
+  (let* ((title (alist-get 'title data))
+	(datalist120d (alist-get 'data data))
+	(datalist20d (seq-subseq datalist120d (- (seq-length datalist120d) 20))))
+    (format tdbooster-marketinfo title
+	    (s-join " " (seq-mapn (lambda (n datapoint)
+				    (format "(%d, %f)" n (seq-elt datapoint 1)))
+				  (number-sequence 1 200 1) datalist120d))
+	    (s-join " " (seq-mapn (lambda (n datapoint)
+				    (format "(%d, %f)" n (seq-elt datapoint 1)))
+				  (number-sequence 1 200 1) datalist20d)))))
+
+(defun tdbooster--render-marketinfo (json)
+  (let ((data (alist-get 'marketinfo json)))
+    (format tdbooster-marketinfo-table (s-join "\n\\hline\n" (seq-map #'tdbooster--render-marketinfo-one data)))))
+
+
 (define-derived-mode tdbooster-mode org-mode "tdbooster"
   "major mode for tdbooster"
   (read-only-mode))
@@ -146,13 +191,19 @@
     (when (not (= 0 (call-process-shell-command command nil "*tdbooster-stdout*")))
       (error (format "something wrong with calling '%s', plz check '*tdbooster-stdout*' buffer" command)))
     (setq json-string (with-current-buffer "*tdbooster-stdout*" (buffer-string)))
+    (setq json (json-read-from-string json-string))
     (with-current-buffer buffer
       (read-only-mode -1)
       (erase-buffer)
-      (insert (tdbooster--render-all-weekly (json-read-from-string json-string)))
+      (insert tdbooster-org-headers)
+      (insert (tdbooster--render-all-weekly json))
       (org-table-align)
-      (insert (tdbooster--render-all-daily (json-read-from-string json-string)))
+      (insert (tdbooster--render-all-daily json))
       (org-table-align)
+      (insert "\n")
+      (insert "** marketinfo")
+      (insert (tdbooster--render-marketinfo json))
+      (org-toggle-latex-fragment)
       (tdbooster-mode))
     (select-window
      (display-buffer

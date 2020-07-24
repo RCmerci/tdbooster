@@ -1,7 +1,6 @@
 open Core
 open Poly
-open Strategy
-module C = Cursor.Data_cursor
+module C = Strategy.Cursor.Data_cursor
 (* 
    ma20, ma60, ma120 最近3点为上升趋势
  *)

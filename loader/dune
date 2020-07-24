@@ -1,7 +1,7 @@
 (library
  (inline_tests)
  (name loader)
- (libraries core testdata shexp.process owl)
+ (libraries core testdata shexp.process owl uri cohttp-lwt-unix  ppx_deriving_yojson.runtime yojson)
  (preprocess
   (pps ppx_inline_test ppx_deriving.show ppx_here ppx_blob))
  (preprocessor_deps (file from_baostock.py) (file from_baostock_ttm.py)))

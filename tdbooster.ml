@@ -6,8 +6,18 @@ type elem = {
   day_data: Filter.Type.Attributed_data.t list;
 }[@@deriving to_yojson]
 
+
+(* 
+   (string * float) list:  (date, num) list
+ *)
+type marketinfo = {
+  title: string;
+  data: (string * float) list;
+}[@@deriving to_yojson]
+
 type output = {
-  data: elem list
+  data: elem list;
+  marketinfo: marketinfo list;
 } [@@deriving to_yojson]
 
 type title = string [@@deriving to_yojson]
@@ -28,6 +38,26 @@ let filter code day_k week_k =
   let week_attr = Filter.Unify.unify week_k in
   {code;week_data=week_attr;day_data=day_attr}
 
+let marketinfo m =
+  let _, _, gc_day_k = Map.find_exn m "GC" in
+  let _, _, hg_day_k = Map.find_exn m "HG" in
+  let info = Filter.Unify.marketinfo hg_day_k gc_day_k in
+  [
+    {
+      title="GC";
+      data=info.gc;
+    };
+    {
+      title="HG";
+      data=info.hg;
+    };
+    {
+      title="HG/GC";
+      data=info.hg_div_gc;
+    };
+  ]
+  
+
 let backtest code strategy rawdata =
   let module S = Exec.Executor.Make(Strategy.Medium_term) in
   let exec_t = Option.value_exn (S.create rawdata) in
@@ -37,27 +67,32 @@ let backtest code strategy rawdata =
   
 let f codes output_dir refresh_data stats backtest =
   let k = List.map codes ~f:(fun code ->
-      if refresh_data then
-          Loader.From_baostock.run_py_script ~code ~output_dir;
-          Loader.From_baostock_ttm.run_py_script ~code ~output_dir;
-     let rawdata = Loader.From_txt.read_from_file (Filename.concat output_dir code)
-         (Filename.concat output_dir (code ^ ".ttm")) in
-     let week_k = Option.value_exn (Deriving.Unify.unify_week rawdata) in
-     let day_k = Option.value_exn (Deriving.Unify.unify_day rawdata) in
-     (code, (day_k, week_k)))
+      let get_data, read_from_file = match code with
+        | "GC" | "HG" -> (Loader.From_sina.get_futrues_data, Loader.From_sina.read_from_file)
+        | _ -> ((fun ~output_dir ~code -> (Loader.From_baostock.run_py_script ~code ~output_dir;
+                                           Loader.From_baostock_ttm.run_py_script ~code ~output_dir;)),
+                (fun ~output_dir ~code ->
+                   Loader.From_txt.read_from_file (Filename.concat output_dir code) (Filename.concat output_dir (code ^ ".ttm"))))
+      in
+      if refresh_data then get_data ~code ~output_dir;
+      let rawdata = read_from_file ~output_dir ~code in
+      let raw_day_k = Owl.Dataframe.to_rows rawdata in
+      let week_k = Option.value_exn (Deriving.Unify.unify_week rawdata) in
+      let day_k = Option.value_exn (Deriving.Unify.unify_day rawdata) in
+      (code, (day_k, week_k, raw_day_k)))
   in
   let m = Map.of_alist_exn (module String) k in
-  
   let js =
     if List.length backtest > 0
     then
       Yojson.Safe.from_string "{\"backtest\": true}"
     else if List.length stats = 0
     then
-      let data = Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k) -> filter code day_k week_k) |> Map.data in
-      output_to_yojson {data}
+      let data = Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k, _) -> filter code day_k week_k) |> Map.data in
+      let marketinfo = marketinfo m in
+      output_to_yojson {data; marketinfo}
     else let data =
-           Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k) -> stat code day_k week_k stats)
+           Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k, _) -> stat code day_k week_k stats)
            |> Map.data
            |> List.join
            |> List.map ~f:(fun data -> (data.title, data))

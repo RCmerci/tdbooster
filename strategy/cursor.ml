@@ -241,3 +241,6 @@ let%test "test-cursor-sub" =
 
 
 module Data_cursor = Make (Deriving.Type.Derived_data)
+module RawData_cursor = Make (Loader.Type.RawData)
+
+

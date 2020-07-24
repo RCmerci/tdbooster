@@ -79,3 +79,13 @@ let fold t ~init ~f =
 let map_with_array t l ~f =
   assert (Array.length l = Dataframe.row_num t);
   Array.map2_exn (Dataframe.to_rows t) l ~f
+
+
+
+module RawData = struct
+  type t = Dataframe.elt array
+
+  let date t = date t
+
+  let to_string _ = "<unimplemented>"
+end
