@@ -78,7 +78,7 @@ let backtest code strategy rawdata =
 let f codes output_dir refresh_data stats backtest =
   let k = List.map codes ~f:(fun code ->
       let get_data, read_from_file = match code with
-        | "GC" | "HG" | "CL" -> (Loader.From_sina.get_futrues_data, Loader.From_sina.read_from_file)
+        | "GC" | "HG" | "CL" -> (Loader.From_sina.Futures.get_futrues_data, Loader.From_sina.Futures.read_from_file)
         | _ -> ((fun ~output_dir ~code -> (Loader.From_baostock.run_py_script ~code ~output_dir;
                                            Loader.From_baostock_ttm.run_py_script ~code ~output_dir;)),
                 (fun ~output_dir ~code ->
@@ -91,6 +91,7 @@ let f codes output_dir refresh_data stats backtest =
       let day_k = Option.value_exn (Deriving.Unify.unify_day rawdata) in
       (code, (day_k, week_k, raw_day_k)))
   in
+  (* TODO: get other code data *)
   let m = Map.of_alist_exn (module String) k in
   let js =
     if List.length backtest > 0

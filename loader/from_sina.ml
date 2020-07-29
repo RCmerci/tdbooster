@@ -2,6 +2,7 @@ open Core
 open Lwt
 open Owl
 
+module Futures = struct
 let get_futrues_data ~output_dir ~code =
   let t = Cohttp_lwt_unix.Client.get
       (Uri.of_string
@@ -37,3 +38,5 @@ let read_from_file ~output_dir ~code : Type.raw_data =
       |  _ -> failwith "illegal data"
     ) |> Type.make_raw_data
   
+end
+

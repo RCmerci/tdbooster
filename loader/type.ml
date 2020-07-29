@@ -89,3 +89,12 @@ module RawData = struct
 
   let to_string _ = "<unimplemented>"
 end
+
+
+module IndustryList = struct
+  type one = {
+    category: string;
+    codes: string list;
+  }[@@deriving show]
+  type t = one list [@@deriving show]
+end
