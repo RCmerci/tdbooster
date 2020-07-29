@@ -35,17 +35,23 @@ let unify (deriving_data: Deriving.Type.Derived_data.t list) : Type.Attributed_d
   in
   attr_data
 
-let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t array) : Type.Market_data.t =
+let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t array) (cl: Loader.Type.RawData.t array) : Type.Market_data.t =
   let module C = Strategy.Cursor.RawData_cursor in
   let gc_c' = C.create_exn (Array.to_list gc) in
   let gc_c, _ = C.move gc_c' 999999 in
   let hg_c' = C.create_exn (Array.to_list hg) in
   let hg_c, _ = C.move hg_c' 999999 in
+  let cl_c' = C.create_exn (Array.to_list cl) in
+  let cl_c, _ = C.move cl_c' 999999 in
   let gc_data = Data_array.data_point_Nday gc_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
   let hg_data = Data_array.data_point_Nday hg_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
+  let cl_data = Data_array.data_point_Nday cl_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
   let hg_div_gc = Data_array.data_div_point_120d hg_c gc_c |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
+  let cl_div_gc = Data_array.data_div_point_120d cl_c gc_c |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
   {
     gc= gc_data;
     hg= hg_data;
+    cl= cl_data;
     hg_div_gc= hg_div_gc;
+    cl_div_gc= cl_div_gc;
   } 

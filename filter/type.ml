@@ -26,6 +26,8 @@ module Market_data = struct
   type t = {
     gc: (string * float) list;
     hg: (string * float) list;
+    cl: (string * float) list;
     hg_div_gc: (string * float) list;
+    cl_div_gc: (string * float) list;
   } [@@deriving show, to_yojson]
 end

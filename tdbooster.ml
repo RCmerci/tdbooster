@@ -41,7 +41,8 @@ let filter code day_k week_k =
 let marketinfo m =
   let _, _, gc_day_k = Map.find_exn m "GC" in
   let _, _, hg_day_k = Map.find_exn m "HG" in
-  let info = Filter.Unify.marketinfo hg_day_k gc_day_k in
+  let _, _, cl_day_k = Map.find_exn m "CL" in
+  let info = Filter.Unify.marketinfo hg_day_k gc_day_k cl_day_k in
   [
     {
       title="GC";
@@ -52,9 +53,18 @@ let marketinfo m =
       data=info.hg;
     };
     {
+      title="CL";
+      data=info.cl;
+    };    
+    {
       title="HG/GC";
       data=info.hg_div_gc;
     };
+    {
+      title="CL/GC";
+      data=info.cl_div_gc;
+    };
+    
   ]
   
 
@@ -68,7 +78,7 @@ let backtest code strategy rawdata =
 let f codes output_dir refresh_data stats backtest =
   let k = List.map codes ~f:(fun code ->
       let get_data, read_from_file = match code with
-        | "GC" | "HG" -> (Loader.From_sina.get_futrues_data, Loader.From_sina.read_from_file)
+        | "GC" | "HG" | "CL" -> (Loader.From_sina.get_futrues_data, Loader.From_sina.read_from_file)
         | _ -> ((fun ~output_dir ~code -> (Loader.From_baostock.run_py_script ~code ~output_dir;
                                            Loader.From_baostock_ttm.run_py_script ~code ~output_dir;)),
                 (fun ~output_dir ~code ->
