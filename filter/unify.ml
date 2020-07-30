@@ -10,7 +10,7 @@ let unify (deriving_data: Deriving.Type.Derived_data.t list) : Type.Attributed_d
   let rsi6_lt_20' = Set.of_list (module Date) rsi6_lt_20 in
   let rsi6_lt_30' = Set.of_list (module Date) rsi6_lt_30 in
   let c = C.create_exn deriving_data in
-  let c', _ = C.move c 999999 in (* goto last entry *)
+  let c' = C.move_to_last c in (* goto last entry *)
   let ma_up = Ma_ema.ma_up c' in
   let ma_arranged = Ma_ema.ma_arrangement c' in
   let price_less_ma20 = Ma_ema.price_lessthan_ma20 c' in
@@ -38,11 +38,11 @@ let unify (deriving_data: Deriving.Type.Derived_data.t list) : Type.Attributed_d
 let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t array) (cl: Loader.Type.RawData.t array) : Type.Market_data.t =
   let module C = Strategy.Cursor.RawData_cursor in
   let gc_c' = C.create_exn (Array.to_list gc) in
-  let gc_c, _ = C.move gc_c' 999999 in
+  let gc_c  = C.move_to_last gc_c' in
   let hg_c' = C.create_exn (Array.to_list hg) in
-  let hg_c, _ = C.move hg_c' 999999 in
+  let hg_c  = C.move_to_last hg_c' in
   let cl_c' = C.create_exn (Array.to_list cl) in
-  let cl_c, _ = C.move cl_c' 999999 in
+  let cl_c  = C.move_to_last cl_c' in
   let gc_data = Data_array.data_point_Nday gc_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
   let hg_data = Data_array.data_point_Nday hg_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
   let cl_data = Data_array.data_point_Nday cl_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
@@ -55,3 +55,11 @@ let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t arra
     hg_div_gc= hg_div_gc;
     cl_div_gc= cl_div_gc;
   } 
+
+type datamap = (string,
+ Deriving.Type.Derived_data.t list * Deriving.Type.Derived_data.t list *
+ Owl.Dataframe.elt array array, String.comparator_witness) Map.t
+    
+let industry_trend (m : datamap) =
+  let cm = Map.map m ~f:(fun (day_k, _, _) -> C.create_exn day_k) in
+  Industry_trend.above_ma20_trend cm

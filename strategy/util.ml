@@ -196,7 +196,7 @@ let%test_module _ =
         Option.value_exn
           (Data_cursor.goto_date c (Date.of_string "2017-01-07"))
       in
-      let end', _ = Data_cursor.move start 99999 in
+      let end' = Data_cursor.move_to_last start in
       let high_list = week_k_high_point_list start end' in
       "(2017-08-14 2018-01-15 2018-06-11 2019-04-22 2019-07-01)"
       = List.to_string
@@ -211,7 +211,7 @@ let%test_module _ =
         Option.value_exn
           (Data_cursor.goto_date c (Date.of_string "2017-01-07") ~hint:`Week)
       in
-      let end', _ = Data_cursor.move start 99999 in
+      let end' = Data_cursor.move_to_last start in
       let high_list = ascending_week_k_high_point_list start end' in
       "(2017-08-14:475.56 2018-01-15:773.52 2018-06-11:777.96 \
        2019-04-22:975.46 2019-07-01:1035.6)"
@@ -228,7 +228,7 @@ let%test_module _ =
         Option.value_exn
           (Data_cursor.goto_date c (Date.of_string "2017-01-07") ~hint:`Week)
       in
-      let end', _ = Data_cursor.move start 99999 in
+      let end' = Data_cursor.move_to_last start in
       let low_list = week_k_low_point_list start end' in
       "(2017-09-11:444.44 2018-04-16:619.46 2018-10-29:494.48 \
        2019-06-10:825.46)"

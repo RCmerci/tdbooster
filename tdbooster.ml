@@ -18,6 +18,8 @@ type marketinfo = {
 type output = {
   data: elem list;
   marketinfo: marketinfo list;
+  (*                code      date     data *)
+  industry_trend: (string * (string * float) list) list;
 } [@@deriving to_yojson]
 
 type title = string [@@deriving to_yojson]
@@ -76,7 +78,8 @@ let backtest code strategy rawdata =
   |> Exec.Output.to_yojson
   
 let f codes output_dir refresh_data stats backtest =
-  let k = List.map codes ~f:(fun code ->
+  let all_codes = List.concat [codes;Loader.Industry.all_codes] |> List.stable_dedup in
+  let k = List.map all_codes ~f:(fun code ->
       let get_data, read_from_file = match code with
         | "GC" | "HG" | "CL" -> (Loader.From_sina.Futures.get_futrues_data, Loader.From_sina.Futures.read_from_file)
         | _ -> ((fun ~output_dir ~code -> (Loader.From_baostock.run_py_script ~code ~output_dir;
@@ -91,7 +94,6 @@ let f codes output_dir refresh_data stats backtest =
       let day_k = Option.value_exn (Deriving.Unify.unify_day rawdata) in
       (code, (day_k, week_k, raw_day_k)))
   in
-  (* TODO: get other code data *)
   let m = Map.of_alist_exn (module String) k in
   let js =
     if List.length backtest > 0
@@ -101,7 +103,8 @@ let f codes output_dir refresh_data stats backtest =
     then
       let data = Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k, _) -> filter code day_k week_k) |> Map.data in
       let marketinfo = marketinfo m in
-      output_to_yojson {data; marketinfo}
+      let industry_trend = Filter.Unify.industry_trend m in
+      output_to_yojson {data; marketinfo; industry_trend}
     else let data =
            Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k, _) -> stat code day_k week_k stats)
            |> Map.data

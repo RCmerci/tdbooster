@@ -80,7 +80,7 @@ let day_k_buy c ctx _week_ctx : (ctx, day_to_sell_ctx) buy_action Log_warning.Lo
 
 
 let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :(Data_cursor.t * float) option Log_warning.LogAndWarnWriter.m =
-  let last_c, _ = Data_cursor.move buy_c 999999 in
+  let last_c = Data_cursor.move_to_last buy_c in
   let low_list =
     week_k_low_point_list ~f:ascending_week_k_high_point_list buy_c last_c
   in

@@ -32,6 +32,8 @@ module Make (Data : Data_with_timestamp) = struct
       ({t with current= t.k_list_len - 1}, t.k_list_len - 1 - t.current)
     else ({t with current= dst}, n)
 
+  let move_to_last t: t = {t with current=t.k_list_len - 1}
+                          
   (* 
      [1;2;3;4]
           ^ 
