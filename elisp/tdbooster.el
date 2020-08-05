@@ -45,7 +45,7 @@
   :type '(repeat string)
   :group 'tdbooster)
 
-(defvar tdbooster-org-headers "#+LATEX_HEADER: \\usepackage{pgfplots}
+(defvar tdbooster-org-headers "#+LATEX_HEADER: \\usepackage{pgfplots,xcolor,colortbl}
 #+PROPERTY: header-args:latex :headers '(\"\\\\usepackage{tikz}\") :fit yes :imagemagick yes :iminoptions -density 300 :imoutoptions
 #+OPTIONS: tex:imagemagick
 ")
@@ -60,6 +60,20 @@
 \\end{center}
 
 ")
+
+(defvar tdbooster-industry-trend-table "
+\\begin{center}
+\\begin{tabular}{ | c | %s | }
+& %s \\\\
+\\hline
+%s
+\\hline
+\\end{tabular}
+\\end{center}
+
+")
+
+
 (defvar tdbooster-marketinfo "
 {\\huge %s} &
 \\begin{tikzpicture}
@@ -176,6 +190,78 @@
   (let ((data (alist-get 'marketinfo json)))
     (format tdbooster-marketinfo-table (s-join "\n\\hline\n" (seq-map #'tdbooster--render-marketinfo-one data)))))
 
+(defun tdbooster--render-industry-trend-title (json)
+  (let* ((data (alist-get 'industry_trend json))
+	(title `(,(seq-elt (seq-elt data 0) 0)
+		 ,(seq-elt (seq-elt data 1) 0)
+		 ,(seq-elt (seq-elt data 2) 0)
+		 ,(seq-elt (seq-elt data 3) 0)
+		 ,(seq-elt (seq-elt data 4) 0)
+		 ,(seq-elt (seq-elt data 5) 0)
+		 ,(seq-elt (seq-elt data 6) 0)
+		 ,(seq-elt (seq-elt data 7) 0))))
+    (s-join "\n" (seq-mapn (lambda (n m)  (format "%d: %s" n m)) (number-sequence 1 (seq-length title) 1) title))))
+
+(defun tdbooster--render-industry-trend-title (json)
+  (let ((data (alist-get 'industry_trend json))
+	(title `(,(seq-elt (seq-elt data 0) 0)
+		 ,(seq-elt (seq-elt data 1) 0)
+		 ,(seq-elt (seq-elt data 2) 0)
+		 ,(seq-elt (seq-elt data 3) 0)
+		 ,(seq-elt (seq-elt data 4) 0)
+		 ,(seq-elt (seq-elt data 5) 0)
+		 ,(seq-elt (seq-elt data 6) 0)
+		 ,(seq-elt (seq-elt data 7) 0))))
+    (s-join "\n" (seq-mapn (lambda (n m)  (format "%d: %s" n m)) (number-sequence 1 (seq-length title) 1) title))))
+
+(defun tdbooster--render-industry-trend (json)
+  (let* ((data (alist-get 'industry_trend json))
+	 (title '("1" "2" "3" "4" "5" "6" "7" "8" "sum"))
+	 (datalist (seq-mapn (lambda (e1 e2 e3 e4 e5 e6 e7 e8)
+			       (let ((date1 (seq-elt e1 0))
+				     (date2 (seq-elt e2 0))
+				     (date3 (seq-elt e3 0))
+				     (date4 (seq-elt e4 0))
+				     (date5 (seq-elt e5 0))
+				     (date6 (seq-elt e6 0))
+				     (date7 (seq-elt e7 0))
+				     (date8 (seq-elt e8 0)))
+				 (when (not (and (equal date1 date2)
+						 (equal date1 date3)
+						 (equal date1 date4)
+						 (equal date1 date5)
+						 (equal date1 date6)
+						 (equal date1 date7)
+						 (equal date1 date8))) (error "bad data"))
+				 `(,date1 ,(format "%.0f" (* 100 (seq-elt e1 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e2 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e3 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e4 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e5 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e6 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e7 1)))
+					  ,(format "%.0f" (* 100 (seq-elt e8 1)))
+					  ,(format "%d" (+ (* 100 (seq-elt e1 1))
+							   (* 100 (seq-elt e2 1))
+							   (* 100 (seq-elt e3 1))
+							   (* 100 (seq-elt e4 1))
+							   (* 100 (seq-elt e5 1))
+							   (* 100 (seq-elt e6 1))
+							   (* 100 (seq-elt e7 1))
+							   (* 100 (seq-elt e8 1)))))))
+			     (seq-elt (seq-elt data 0) 1)
+			     (seq-elt (seq-elt data 1) 1)
+			     (seq-elt (seq-elt data 2) 1)
+			     (seq-elt (seq-elt data 3) 1)
+			     (seq-elt (seq-elt data 4) 1)
+			     (seq-elt (seq-elt data 5) 1)
+			     (seq-elt (seq-elt data 6) 1)
+			     (seq-elt (seq-elt data 7) 1)))
+	 (datalist_str (seq-map (lambda (l) (s-concat (s-join " & " l) "\\\\")) datalist)))
+    (format tdbooster-industry-trend-table
+	    (s-join " | " (make-list (+ 1 (seq-length data)) "c"))
+	    (s-join " & " title)
+	    (s-join "\n\\hline\n" datalist_str))))
 
 (define-derived-mode tdbooster-mode org-mode "tdbooster"
   "major mode for tdbooster"
@@ -201,8 +287,11 @@
       (insert (tdbooster--render-all-daily json))
       (org-table-align)
       (insert "\n")
-      (insert "** marketinfo")
+      (insert "** marketinfo\n")
       (insert (tdbooster--render-marketinfo json))
+      (insert "** industry trend\n")
+      (insert (tdbooster--render-industry-trend-title json))
+      (insert (tdbooster--render-industry-trend json))
       (org-toggle-latex-fragment)
       (tdbooster-mode))
     (select-window

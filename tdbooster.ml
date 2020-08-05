@@ -95,13 +95,14 @@ let f codes output_dir refresh_data stats backtest =
       (code, (day_k, week_k, raw_day_k)))
   in
   let m = Map.of_alist_exn (module String) k in
+  let selected_m = Map.filteri m ~f:(fun ~key ~data:_data -> List.exists codes ~f:(equal_string key)) in
   let js =
     if List.length backtest > 0
     then
       Yojson.Safe.from_string "{\"backtest\": true}"
     else if List.length stats = 0
     then
-      let data = Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k, _) -> filter code day_k week_k) |> Map.data in
+      let data = Map.mapi selected_m  ~f:(fun ~key:code ~data:(day_k, week_k, _) -> filter code day_k week_k) |> Map.data in
       let marketinfo = marketinfo m in
       let industry_trend = Filter.Unify.industry_trend m in
       output_to_yojson {data; marketinfo; industry_trend}

@@ -9,8 +9,8 @@ let above_ma20_trend_aux (cm:cursorMap) (e:Loader.Type.IndustryList.one) =
   let l = List.map e.codes ~f:(fun code ->
       Map.find cm code >>= fun c ->
       let c' = C.move_to_last c in
-      let datalist = C.left_current c' 60 in
-      if  (List.length datalist <> 60)
+      let datalist = C.left_current c' 50 in
+      if  (List.length datalist <> 50)
       then None
       else
         Some (List.map datalist ~f:(fun e -> if Loader.Type.close e.raw_data > e.ma20 then (Date.to_string e.date, 1) else (Date.to_string e.date, 0)))
