@@ -16,13 +16,19 @@ if lg.error_code != "0":
 
 #### 获取沪深A股历史K线数据 ####
 # 分钟线指标：date,time,code,open,high,low,close,volume,amount,adjustflag
-rs = bs.query_history_k_data_plus(code,
-    "date,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST",
-    start_date='2010-01-01', end_date=str(datetime.date.today()),
-    frequency="d", adjustflag="2")
-if rs.error_code != '0':
-    print( 'query_history_k_data_plus respond error_code:'+rs.error_code, file=sys.stderr)
-    print( 'query_history_k_data_plus respond  error_msg:'+rs.error_msg, file=sys.stderr)
+for i in (1,2,3):
+    rs = bs.query_history_k_data_plus(code,
+                                      "date,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST",
+                                      start_date='2010-01-01', end_date=str(datetime.date.today()),
+                                      frequency="d", adjustflag="2")
+    if rs.error_code != '0':
+        if rs.error_msg == '用户未登录':
+            bs.login()
+        else:
+            print('query_history_k_data_plus,'+code+',errcode:'+rs.error_code, file=sys.stderr)
+            print('query_history_k_data_plus,'+code+',errmsg:'+rs.error_msg, file=sys.stderr)
+    else:
+        break
 
 #### 打印结果集 ####
 data_list = []
