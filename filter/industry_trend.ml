@@ -9,8 +9,8 @@ let above_ma20_trend_aux (cm:cursorMap) (e:Loader.Type.IndustryList.one) =
   let l = List.map e.codes ~f:(fun code ->
       Map.find cm code >>= fun c ->
       let c' = C.move_to_last c in
-      let datalist = C.left_current c' 50 in
-      if  (List.length datalist <> 50)
+      let datalist = C.left_current c' 120 in
+      if  (List.length datalist <> 120)
       then None
       else
         Some (List.map datalist ~f:(fun e -> if Loader.Type.close e.raw_data > e.ma20 then (Date.to_string e.date, 1) else (Date.to_string e.date, 0)))
@@ -19,8 +19,9 @@ let above_ma20_trend_aux (cm:cursorMap) (e:Loader.Type.IndustryList.one) =
   assert (List.length l' > 0);
   let datelist = List.nth_exn l' 0 |> List.unzip |> fst in
   let l'' = List.map l' ~f:(fun e -> List.unzip e |> snd) in
-  let totalcount = List.length (List.nth_exn l'' 0) in
-  let l''' = List.fold l'' ~init:(List.init totalcount ~f:(fun _ -> 0))
+  let datecount = List.length (List.nth_exn l'' 0) in
+  let totalcount = List.length l'' in
+  let l''' = List.fold l'' ~init:(List.init datecount ~f:(fun _ -> 0))
       ~f:(fun r e' -> List.map2_exn r e' ~f:(+)) in
   List.zip_exn datelist (List.map l''' ~f:(fun e -> float_of_int e /. float_of_int totalcount))
 
