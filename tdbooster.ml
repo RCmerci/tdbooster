@@ -96,17 +96,18 @@ let refresh_data_aux codes output_dir =
 let f codes output_dir refresh_data stats backtest =
   let all_codes = List.concat [codes;Loader.Industry.all_codes] |> List.stable_dedup in
   if refresh_data then refresh_data_aux all_codes output_dir;
-  let k = List.map all_codes ~f:(fun code ->
-      let read_from_file = match code with
-        | "GC" | "HG" | "CL" -> (Loader.From_sina.Futures.read_from_file)
-        | _ -> ((fun ~output_dir ~code ->
-                   Loader.From_txt.read_from_file (Filename.concat output_dir code) (Filename.concat output_dir (code ^ ".ttm"))))
-      in
-      let rawdata = read_from_file ~output_dir ~code in
-      let raw_day_k = Owl.Dataframe.to_rows rawdata in
-      let week_k = Option.value_exn (Deriving.Unify.unify_week rawdata) in
-      let day_k = Option.value_exn (Deriving.Unify.unify_day rawdata) in
-      (code, (day_k, week_k, raw_day_k)))
+  let mapf = fun code ->
+    let read_from_file = match code with
+      | "GC" | "HG" | "CL" -> (Loader.From_sina.Futures.read_from_file)
+      | _ -> ((fun ~output_dir ~code ->
+          Loader.From_txt.read_from_file (Filename.concat output_dir code) (Filename.concat output_dir (code ^ ".ttm"))))
+    in
+    let rawdata = read_from_file ~output_dir ~code in
+    let raw_day_k = Owl.Dataframe.to_rows rawdata in
+    let week_k = Option.value_exn ~message:(Printf.sprintf "code: %s" code) (Deriving.Unify.unify_week rawdata) in
+    let day_k = Option.value_exn ~message:(Printf.sprintf "code: %s" code) (Deriving.Unify.unify_day rawdata) in
+    (code, (day_k, week_k, raw_day_k)) in
+  let k = List.map all_codes ~f:(fun code -> try mapf code with _ -> failwith (Printf.sprintf "code: %s" code))
   in
   let m = Map.of_alist_exn (module String) k in
   let selected_m = Map.filteri m ~f:(fun ~key ~data:_data -> List.exists codes ~f:(equal_string key)) in

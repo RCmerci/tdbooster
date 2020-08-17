@@ -27,7 +27,7 @@ for i in (1,2,3):
         else:
             print('query_history_k_data_plus,'+code+',errcode:'+rs.error_code, file=sys.stderr)
             print('query_history_k_data_plus,'+code+',errmsg:'+rs.error_msg, file=sys.stderr)
-    else:
+    elif rs.next():
         break
 
 #### 打印结果集 ####
