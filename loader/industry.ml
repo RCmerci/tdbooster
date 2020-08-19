@@ -373,6 +373,23 @@ let get_industry_list : Type.IndustryList.t =
         "sh.603517";
       ];
     };
+    {
+      category="航空运输业";
+      codes=[
+        "sh.600004";
+        "sh.600009";
+        "sh.600029";
+        "sh.600115";
+        "sh.600221";
+        "sh.600897";
+        "sh.601021";
+        "sh.601111";
+        "sh.603885";
+        "sz.000089";
+        "sz.000099";
+        "sz.002928";
+      ];
+    };
   ]
 
 let all_codes = List.map get_industry_list ~f:(fun e -> e.codes) |> List.concat |> List.stable_dedup

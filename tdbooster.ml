@@ -35,9 +35,9 @@ let stat code day_k _week_k stats =
       | _ -> failwith ""
     )
 
-let filter code day_k week_k =
-  let day_attr = Filter.Unify.unify day_k in
-  let week_attr = Filter.Unify.unify week_k in
+let filter code day_k week_k zz800_day_k zz800_week_k =
+  let day_attr = Filter.Unify.unify code zz800_day_k day_k in
+  let week_attr = Filter.Unify.unify code zz800_week_k week_k in
   {code;week_data=week_attr;day_data=day_attr}
 
 let marketinfo m =
@@ -94,7 +94,7 @@ let refresh_data_aux codes output_dir =
   in ()
 
 let f codes output_dir refresh_data stats backtest =
-  let all_codes = List.concat [codes;Loader.Industry.all_codes] |> List.stable_dedup in
+  let all_codes = List.concat [codes;Loader.Industry.all_codes;Loader.Common_codes.common_codes] |> List.stable_dedup in
   if refresh_data then refresh_data_aux all_codes output_dir;
   let mapf = fun code ->
     let read_from_file = match code with
@@ -107,7 +107,8 @@ let f codes output_dir refresh_data stats backtest =
     let week_k = Option.value_exn ~message:(Printf.sprintf "code: %s" code) (Deriving.Unify.unify_week rawdata) in
     let day_k = Option.value_exn ~message:(Printf.sprintf "code: %s" code) (Deriving.Unify.unify_day rawdata) in
     (code, (day_k, week_k, raw_day_k)) in
-  let k = List.map all_codes ~f:(fun code -> try mapf code with _ -> failwith (Printf.sprintf "code: %s" code))
+  let k = List.map all_codes ~f:(fun code -> try mapf code with
+      | _ -> refresh_data_aux [code] output_dir; mapf code)
   in
   let m = Map.of_alist_exn (module String) k in
   let selected_m = Map.filteri m ~f:(fun ~key ~data:_data -> List.exists codes ~f:(equal_string key)) in
@@ -117,7 +118,12 @@ let f codes output_dir refresh_data stats backtest =
       Yojson.Safe.from_string "{\"backtest\": true}"
     else if List.length stats = 0
     then
-      let data = Map.mapi selected_m  ~f:(fun ~key:code ~data:(day_k, week_k, _) -> filter code day_k week_k) |> Map.data in
+      let zz800_day_k, zz800_week_k, _ = Map.find_exn m Loader.Common_codes.zz800 in
+      let data = Map.mapi selected_m
+          ~f:(fun ~key:code ~data:(day_k, week_k, _) ->
+              try filter code day_k week_k zz800_day_k zz800_week_k with
+              | e -> failwith (Printf.sprintf "code: %s, %s" code (Exn.to_string e));
+            ) |> Map.data in
       let marketinfo = marketinfo m in
       let industry_trend = Filter.Unify.industry_trend m in
       output_to_yojson {data; marketinfo; industry_trend}

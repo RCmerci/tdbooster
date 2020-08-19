@@ -1,12 +1,13 @@
 open Core
 module C = Strategy.Cursor.Data_cursor
 
-let unify (deriving_data: Deriving.Type.Derived_data.t list) : Type.Attributed_data.t list =
-  let two_month_ago = Date.add_months (List.last_exn deriving_data).date (-2) in
-  let golden_cross_points = Rsi.golden_cross two_month_ago deriving_data in
+let unify code (zz800: Deriving.Type.Derived_data.t list) (deriving_data: Deriving.Type.Derived_data.t list)
+  : Type.Attributed_data.t list =
+  let three_month_ago = Date.add_months (List.last_exn deriving_data).date (-3) in
+  let golden_cross_points = Rsi.golden_cross three_month_ago deriving_data in
   let golden_cross_points' = Set.of_list (module Date) golden_cross_points  in
-  let rsi6_lt_20 = Rsi.low_rsi6_20 two_month_ago deriving_data in
-  let rsi6_lt_30 = Rsi.low_rsi6_30 two_month_ago deriving_data in
+  let rsi6_lt_20 = Rsi.low_rsi6_20 three_month_ago deriving_data in
+  let rsi6_lt_30 = Rsi.low_rsi6_30 three_month_ago deriving_data in
   let rsi6_lt_20' = Set.of_list (module Date) rsi6_lt_20 in
   let rsi6_lt_30' = Set.of_list (module Date) rsi6_lt_30 in
   let c = C.create_exn deriving_data in
@@ -17,23 +18,30 @@ let unify (deriving_data: Deriving.Type.Derived_data.t list) : Type.Attributed_d
   let price_before_20 = Ma_ema.price_before_20 c' in
   let price_before_60 = Ma_ema.price_before_60 c' in
   let price_before_120 = Ma_ema.price_before_120 c' in
-  let attr_data = List.map (Deriving.Op.sub_by_startdate deriving_data two_month_ago)
-    ~f:(fun e : Type.Attributed_data.t ->
-        {
-          date= e.date;
-          rsi_golden_cross=Set.mem golden_cross_points' e.date;
-          rsi6_lt_30=Set.mem rsi6_lt_30' e.date;
-          rsi6_lt_20=Set.mem rsi6_lt_20' e.date;
-          ma_up=ma_up;
-          ma_arranged=ma_arranged;
-          price_less_ma20=price_less_ma20;
-          price_before_20=price_before_20;
-          price_before_60=price_before_60;
-          price_before_120=price_before_120;
-        }
-      )
+  let industry = Industry.get_industry code in
+  let attr_data = List.map2 (Deriving.Op.sub_by_startdate deriving_data three_month_ago) (Deriving.Op.sub_by_startdate zz800 three_month_ago)
+      ~f:(fun e zz800 : Type.Attributed_data.t ->
+          assert (Date.equal e.date zz800.date);
+          {
+            date=e.date;
+            industry=industry;
+            rsi_golden_cross=Set.mem golden_cross_points' e.date;
+            rsi6_lt_30=Set.mem rsi6_lt_30' e.date;
+            rsi6_lt_20=Set.mem rsi6_lt_20' e.date;
+            ma_up=ma_up;
+            ma_arranged=ma_arranged;
+            price_less_ma20=price_less_ma20;
+            relative_strength=(Loader.Type.close e.raw_data) /. (Loader.Type.close zz800.raw_data);
+            price_before_20=price_before_20;
+            price_before_60=price_before_60;
+            price_before_120=price_before_120;
+          }
+        )
   in
-  attr_data
+  match attr_data with
+  | List.Or_unequal_lengths.Ok v -> v
+  | List.Or_unequal_lengths.Unequal_lengths -> failwith "unequal length of data"
+  
 
 let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t array) (cl: Loader.Type.RawData.t array) : Type.Market_data.t =
   let module C = Strategy.Cursor.RawData_cursor in

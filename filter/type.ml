@@ -9,12 +9,14 @@ module Attributed_data = struct
 
   type t = {
     date: date [@to_yojson date_to_yojson];
+    industry: string option;
     rsi_golden_cross: bool;
     rsi6_lt_20: bool;
     rsi6_lt_30: bool;
     ma_up: bool;
     ma_arranged: bool;
     price_less_ma20: bool;
+    relative_strength: float; (* price/zz800_price *)
     price_before_20: (float * string); (* (price, date) *)
     price_before_60: (float * string); (* (price, date) *)
     price_before_120: (float * string); (* (price, date) *)

@@ -86,10 +86,29 @@
 \\end{tikzpicture} \\\\
 ")
 
+(defvar tdbooster--relative-strength "
+{\\huge %s} &
+\\begin{tikzpicture}
+	\\begin{axis}[hide x axis, hide y axis, height=3cm, width=7cm]
+	\\addplot+[mark=., color=black] coordinates { %s };
+	\\end{axis}
+\\end{tikzpicture} \\\\
+")
+(defvar tdbooster--relative-strength-table "
+\\begin{center}
+\\begin{tabular}{ | c | c | }
+& 120d \\\\
+\\hline
+%s
+\\hline
+\\end{tabular}
+\\end{center}
+
+")
 (defvar tdbooster--table-header
-  "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30| ma up| ma arranged| price<ma20| price(-20d)|price(-60d)|price(-120d)|
+  "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30| ma up| ma arranged|price<ma20|industry| price(-20d)|price(-60d)|price(-120d)|
 |-----------+------------------+---+---|")
-(defvar tdbooster--table-format "| %s | %s | %s | %s | %s | %s | %s | %s(%f) | %s(%f) | %s(%f) |")
+(defvar tdbooster--table-format "| %s | %s | %s | %s | %s | %s | %s | %S | %s(%f) | %s(%f) | %s(%f) |")
 (defvar tdbooster--stat-table-header
   "|code| %s |
 |----|")
@@ -112,8 +131,9 @@
 	 (price_before_60_price (seq-elt (alist-get 'price_before_60 weeklast) 0))
 	 (price_before_60_date (seq-elt (alist-get 'price_before_60 weeklast) 1))
 	 (price_before_120_price (seq-elt (alist-get 'price_before_120 weeklast) 0))
-	 (price_before_120_date (seq-elt (alist-get 'price_before_120 weeklast) 1)))
-    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20
+	 (price_before_120_date (seq-elt (alist-get 'price_before_120 weeklast) 1))
+	 (industry (alist-get 'industry weeklast)))
+    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20 industry
 	    price_before_20_date price_before_20_price
 	    price_before_60_date price_before_60_price
 	    price_before_120_date price_before_120_price)))
@@ -133,8 +153,9 @@
 	 (price_before_60_price (seq-elt (alist-get 'price_before_60 daylast) 0))
 	 (price_before_60_date (seq-elt (alist-get 'price_before_60 daylast) 1))
 	 (price_before_120_price (seq-elt (alist-get 'price_before_120 daylast) 0))
-	 (price_before_120_date (seq-elt (alist-get 'price_before_120 daylast) 1)))
-    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20
+	 (price_before_120_date (seq-elt (alist-get 'price_before_120 daylast) 1))
+	 (industry (alist-get 'industry daylast)))
+    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20 industry
 	    price_before_20_date price_before_20_price
 	    price_before_60_date price_before_60_price
 	    price_before_120_date price_before_120_price)))
@@ -145,13 +166,13 @@
 			   (seq-map (lambda (e)
 				      (tdbooster--render-one-weekly e))
 				    (alist-get 'data json))))))
+
 (defun tdbooster--render-all-daily (json)
   (s-join "\n" (cons "\n** DAY"
 		     (cons  tdbooster--table-header
 			    (seq-map (lambda (e)
 				       (tdbooster--render-one-daily e))
 				     (alist-get 'data json))))))
-
 
 (defun tdbooster--render-stat-one (json)
   (let* ((title (seq-elt json 0))
@@ -187,24 +208,39 @@
   (let ((data (alist-get 'marketinfo json)))
     (format tdbooster-marketinfo-table (s-join "\n\\hline\n" (seq-map #'tdbooster--render-marketinfo-one data)))))
 
+(defun tdbooster--render-relative-strength (json subtable-start subtable-length)
+  (let* ((data (alist-get 'data json))
+	(r
+	 (seq-map (lambda (e)
+		    (let* ((code (alist-get 'code e))
+			   (daydata (alist-get 'day_data e))
+			   (rel (seq-map (lambda (e) (alist-get 'relative_strength e)) daydata)))
+		      (format tdbooster--relative-strength code
+			      (s-join " " (seq-mapn (lambda (n datapoint)
+						      (format "(%d, %f)" n datapoint))
+						    (number-sequence 1 200 1) rel)))))
+		  (seq-subseq data subtable-start subtable-length))))
+    (format tdbooster--relative-strength-table (s-join "\n\\hline\n" r))))
+
 (defun tdbooster--render-industry-trend-title (json)
   (let* ((data (alist-get 'industry_trend json))
-	(title `(,(seq-elt (seq-elt data 0) 0)
-		 ,(seq-elt (seq-elt data 1) 0)
-		 ,(seq-elt (seq-elt data 2) 0)
-		 ,(seq-elt (seq-elt data 3) 0)
-		 ,(seq-elt (seq-elt data 4) 0)
-		 ,(seq-elt (seq-elt data 5) 0)
-		 ,(seq-elt (seq-elt data 6) 0)
-		 ,(seq-elt (seq-elt data 7) 0)
-		 ,(seq-elt (seq-elt data 8) 0))))
+	 (title `(,(seq-elt (seq-elt data 0) 0)
+		  ,(seq-elt (seq-elt data 1) 0)
+		  ,(seq-elt (seq-elt data 2) 0)
+		  ,(seq-elt (seq-elt data 3) 0)
+		  ,(seq-elt (seq-elt data 4) 0)
+		  ,(seq-elt (seq-elt data 5) 0)
+		  ,(seq-elt (seq-elt data 6) 0)
+		  ,(seq-elt (seq-elt data 7) 0)
+		  ,(seq-elt (seq-elt data 8) 0)
+		  ,(seq-elt (seq-elt data 9) 0))))
     (s-join "\n" (seq-mapn (lambda (n m)  (format "%d: %s" n m)) (number-sequence 1 (seq-length title) 1) title))))
 
 
 (defun tdbooster--render-industry-trend (json subtable-start subtable-length)
   (let* ((data (alist-get 'industry_trend json))
-	 (title '("1" "2" "3" "4" "5" "6" "7" "8" "9" "sum"))
-	 (datalist (seq-mapn (lambda (e1 e2 e3 e4 e5 e6 e7 e8 e9)
+	 (title '("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "sum"))
+	 (datalist (seq-mapn (lambda (e1 e2 e3 e4 e5 e6 e7 e8 e9 e10)
 			       (let* ((date1 (seq-elt e1 0))
 				      (date2 (seq-elt e2 0))
 				      (date3 (seq-elt e3 0))
@@ -214,6 +250,7 @@
 				      (date7 (seq-elt e7 0))
 				      (date8 (seq-elt e8 0))
 				      (date9 (seq-elt e9 0))
+				      (date10 (seq-elt e10 0))
 
 				      (data1 (* 100 (seq-elt e1 1)))
 				      (data2 (* 100 (seq-elt e2 1)))
@@ -224,8 +261,10 @@
 				      (data7 (* 100 (seq-elt e7 1)))
 				      (data8 (* 100 (seq-elt e8 1)))
 				      (data9 (* 100 (seq-elt e9 1)))
+				      (data10 (* 100 (seq-elt e10 1)))
 				      (sum (+ data1 data2 data3 data4
-					      data5 data6 data7 data8 data9)))
+					      data5 data6 data7 data8
+					      data9 data10 )))
 				 (when (not (and (equal date1 date2)
 						 (equal date1 date3)
 						 (equal date1 date4)
@@ -233,7 +272,8 @@
 						 (equal date1 date6)
 						 (equal date1 date7)
 						 (equal date1 date8)
-						 (equal date1 date9))) (error "bad data"))
+						 (equal date1 date9)
+						 (equal date1 date10))) (error "bad data"))
 				 `(,date1 ,(format "\\cellcolor{gray!%.0f}%.0f" data1 data1)
 					  ,(format "\\cellcolor{gray!%.0f}%.0f" data2 data2)
 					  ,(format "\\cellcolor{gray!%.0f}%.0f" data3 data3)
@@ -243,7 +283,8 @@
 					  ,(format "\\cellcolor{gray!%.0f}%.0f" data7 data7)
 					  ,(format "\\cellcolor{gray!%.0f}%.0f" data8 data8)
 					  ,(format "\\cellcolor{gray!%.0f}%.0f" data9 data9)
-					  ,(format "\\cellcolor{gray!%.0f}%d" (* 100 (/ sum 900.0)) sum))))
+					  ,(format "\\cellcolor{gray!%.0f}%.0f" data10 data10)
+					  ,(format "\\cellcolor{gray!%.0f}%d" (* 100 (/ sum 1000.0)) sum))))
 
 			     (seq-subseq (seq-elt (seq-elt data 0) 1) subtable-start subtable-length)
 			     (seq-subseq (seq-elt (seq-elt data 1) 1) subtable-start subtable-length)
@@ -253,7 +294,8 @@
 			     (seq-subseq (seq-elt (seq-elt data 5) 1) subtable-start subtable-length)
 			     (seq-subseq (seq-elt (seq-elt data 6) 1) subtable-start subtable-length)
 			     (seq-subseq (seq-elt (seq-elt data 7) 1) subtable-start subtable-length)
-			     (seq-subseq (seq-elt (seq-elt data 8) 1) subtable-start subtable-length)))
+			     (seq-subseq (seq-elt (seq-elt data 8) 1) subtable-start subtable-length)
+			     (seq-subseq (seq-elt (seq-elt data 9) 1) subtable-start subtable-length)))
 	 (datalist_str (seq-map (lambda (l) (s-concat (s-join " & " l) "\\\\")) datalist)))
     (format tdbooster-industry-trend-table
 	    (s-join " | " (make-list (+ 1 (seq-length data)) "c"))
@@ -283,6 +325,12 @@
       (org-table-align)
       (insert (tdbooster--render-all-daily json))
       (org-table-align)
+      (insert "\n** relative strength\n")
+      (insert (tdbooster--render-relative-strength json 0 10))
+      (insert (tdbooster--render-relative-strength json 11 20))
+      (insert (tdbooster--render-relative-strength json 21 30))
+      (insert (tdbooster--render-relative-strength json 31 nil))
+
       (insert "\n")
       (insert "** marketinfo\n")
       (insert (tdbooster--render-marketinfo json))
