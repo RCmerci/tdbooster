@@ -48,21 +48,6 @@ let ttm e = e.ttm
 
 let days e = e.days
 
-
-(* let fold t ~init ~f =
- *   let r = ref init in
- *   Dataframe.iter_row (fun e ->
- *       let r' = f !r e in
- *       r := r';
- *     ) t;
- *   !r
- * 
- * let map_with_array t l ~f =
- *   assert (Array.length l = Dataframe.row_num t);
- *   Array.map2_exn (Dataframe.to_rows t) l ~f *)
-
-
-
 module RawData = struct
   type t = raw_data_elem
 
