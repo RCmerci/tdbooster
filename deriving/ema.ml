@@ -1,5 +1,4 @@
 open Core
-open Owl
     
 (*
 https://baike.baidu.com/item/EMA/12646151
@@ -9,17 +8,17 @@ https://baike.baidu.com/item/EMA/12646151
    N: 表示计算的是N天的EMA
    CLOSING_DATA_LIST: 收盘价数据列表
  *)
-let ema_all_days n (closing_data_list : float array) : float list =
+let ema_all_days n (closing_data_list : float list) : float list =
   let alpha = 2. /. (float_of_int n +. 1.) in
-  if Array.length closing_data_list = 0 then []
+  if List.length closing_data_list = 0 then []
   else
-    let r = [Array.nget closing_data_list 0] in
+    let r = [List.nth_exn closing_data_list 0] in
     let nth = 1 in
     let rec aux r nth yesterday =
-      if Array.length closing_data_list <= nth then
+      if List.length closing_data_list <= nth then
         List.rev r
       else 
-        let today = Array.nget closing_data_list nth in
+        let today = List.nth_exn closing_data_list nth in
         let ema_today = (alpha *. today) +. ((1. -. alpha) *. yesterday) in
         aux (ema_today :: r) (nth + 1) ema_today
     in
@@ -32,14 +31,14 @@ let%test "test-ema_all" =
   in
   let closing_data_list = Loader.Type.close_col datal in
   let ema60_all = ema_all_days 60 closing_data_list in
-  List.length ema60_all = Dataframe.row_num datal
+  List.length ema60_all = List.length datal
   && int_of_float (List.nth_exn ema60_all 4000) = 705
   && int_of_float (List.nth_exn ema60_all 3000) = 86
 
 let ema n (data_list : Loader.Type.raw_data) : (Date.t * float) list =
   match
     List.zip
-      (Array.to_list (Loader.Type.date_col data_list))
+      (Loader.Type.date_col data_list)
       (ema_all_days n (Loader.Type.close_col data_list))
   with
   | List.Or_unequal_lengths.Ok v ->
@@ -54,6 +53,6 @@ let%test "test-ema" =
       (String.split_lines Testdata.Data.data) []
   in
   let ema60_all = ema 60 datal in
-  List.length ema60_all = Dataframe.row_num datal
+  List.length ema60_all = List.length datal
   && int_of_float (snd (List.nth_exn ema60_all 4000)) = 705
   && int_of_float (snd (List.nth_exn ema60_all 3000)) = 86

@@ -19,6 +19,5 @@
   ppx_here
   ppx_inline_test
   ppx_jane
-  yojson
-  owl)
+  yojson)
   (synopsis "Tdbooster"))

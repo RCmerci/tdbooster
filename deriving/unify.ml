@@ -1,6 +1,5 @@
 open Core
 open Option.Monad_infix
-open Owl
     
 let unify (data_list : Loader.Type.raw_data) :
   Type.Derived_data.t list option =
@@ -82,7 +81,7 @@ let unify (data_list : Loader.Type.raw_data) :
       failwith "unequal length of data"
   in
   Some
-    (aux datelist ema12 ema20 ema26 ema60 ema120 macd_dif_dea (Array.to_list (Dataframe.to_rows data_list)) ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 kdj933 [])
+    (aux datelist ema12 ema20 ema26 ema60 ema120 macd_dif_dea data_list ma20 ma60 ma120 bias24 rsi6 rsi12 rsi24 kdj933 [])
 
 let unify_day = unify
 

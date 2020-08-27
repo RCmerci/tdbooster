@@ -1,6 +1,5 @@
 open Core
 open Lwt
-open Owl
 
 module Futures = struct
   let get_futrues_data ~output_dir ~code =
@@ -24,17 +23,17 @@ module Futures = struct
         match e with
         | `Assoc al ->
           (* {"date":"2010-07-23","open":"1195.100","high":"1203.900","low":"1183.400","close":"1187.800","volume":"19526"} *)
-          [|
-            Dataframe.String (List.Assoc.find_exn al ~equal:(String.(=)) "date" |> Yojson.Safe.Util.to_string);
-            Dataframe.Float (List.Assoc.find_exn al ~equal:(String.(=)) "open" |> Yojson.Safe.Util.to_string |> Float.of_string);
-            Dataframe.Float (List.Assoc.find_exn al ~equal:(String.(=)) "high"|> Yojson.Safe.Util.to_string |> Float.of_string);
-            Dataframe.Float (List.Assoc.find_exn al ~equal:(String.(=)) "low" |> Yojson.Safe.Util.to_string |> Float.of_string);
-            Dataframe.Float (List.Assoc.find_exn al ~equal:(String.(=)) "close" |> Yojson.Safe.Util.to_string |> Float.of_string);
-            Dataframe.Float 0.;
-            Dataframe.Float 1.;
-          |] 
+          ({
+            date=(List.Assoc.find_exn al ~equal:(String.(=)) "date" |> Yojson.Safe.Util.to_string |> Date.of_string);
+            opening=(List.Assoc.find_exn al ~equal:(String.(=)) "open" |> Yojson.Safe.Util.to_string |> Float.of_string);
+            high=(List.Assoc.find_exn al ~equal:(String.(=)) "high" |> Yojson.Safe.Util.to_string |> Float.of_string);
+            low=(List.Assoc.find_exn al ~equal:(String.(=)) "low" |> Yojson.Safe.Util.to_string |> Float.of_string);
+            close=(List.Assoc.find_exn al ~equal:(String.(=)) "close" |> Yojson.Safe.Util.to_string |> Float.of_string);
+            ttm=0.;
+            days=1;
+            percent_change=0.;
+          }:Type.raw_data_elem)
         |  _ -> failwith "illegal data"
-      ) |> Type.make_raw_data
-
+      ) 
 end
 

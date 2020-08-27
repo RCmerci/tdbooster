@@ -1,6 +1,5 @@
 open Core
 open Poly
-open Owl
 
 let diff open' close high low =
   let (up, down) = if open' > close then (open', close) else (close, open') in
@@ -147,15 +146,16 @@ let%test_module _ =
     let a1: Deriving.Type.Derived_data.t = {
       date=Date.of_string "2012-01-01";
       (* [|"date";"open";"high";"low";"close";"ttm";"days"|] *)
-      raw_data=[|
-        Dataframe.String "2012-01-01";
-          Dataframe.Float 1.;
-          Dataframe.Float 1.;
-          Dataframe.Float 1.;
-          Dataframe.Float 10.;
-          Dataframe.Float 0.;
-          Dataframe.Int 1;
-        |];
+      raw_data={
+        date=Date.of_string "2012-01-01";
+        opening=1.;
+        high=1.;
+        low=1.;
+        close=10.;
+        ttm=0.;
+        days=1;
+        percent_change=0.;
+      };
       ma20=0. ;
       ma60=0. ;
       ma120=0. ;
@@ -175,72 +175,76 @@ let%test_module _ =
     } 
     let a2 = {a1 with
               date=Date.of_string "2012-01-02";
-              raw_data=[|
-                Dataframe.String "2012-01-02";
-                Dataframe.Float 1.;
-                Dataframe.Float 1.;
-                Dataframe.Float 1.;
-                Dataframe.Float 9.;
-                Dataframe.Float 0.;
-                Dataframe.Int 1;
-              |]}
+              raw_data={
+                date=Date.of_string "2012-01-02";
+                opening=1.;
+                high=1.;
+                low=1.;
+                close=9.;
+                ttm=0.;
+                days=1;
+                percent_change=0.;
+              }}
     let a3 = {a1 with
               date=Date.of_string "2012-01-03";
-              raw_data=[|
-                Dataframe.String "2012-01-03";
-                Dataframe.Float 1.;
-                Dataframe.Float 1.;
-                Dataframe.Float 1.;
-                Dataframe.Float 8.;
-                Dataframe.Float 0.;
-                Dataframe.Int 1;
-              |]}
+              raw_data={
+                date=Date.of_string "2012-01-03";
+                opening=1.;
+                high=1.;
+                low=1.;
+                close=8.;
+                ttm=0.;
+                days=1;
+                percent_change=0.;
+              }}
     let a4 = {a1 with
               date=Date.of_string "2012-01-04";
-              raw_data=[|
-                Dataframe.String "2012-01-04";
-                Dataframe.Float 6.;
-                Dataframe.Float 10.;
-                Dataframe.Float 3.;
-                Dataframe.Float 7.;
-                Dataframe.Float 0.;
-                Dataframe.Int 1;
-              |]}
+              raw_data={
+                date=Date.of_string "2012-01-04";
+                opening=6.;
+                high=10.;
+                low=3.;
+                close=7.;
+                ttm=0.;
+                days=1;
+                percent_change=0.;
+              }}
     let a5 = {a1 with
               date=Date.of_string "2012-01-05";
-              raw_data=[|
-                Dataframe.String "2012-01-05";
-                Dataframe.Float 5.;
-                Dataframe.Float 11.;
-                Dataframe.Float 4.;
-                Dataframe.Float 10.;
-                Dataframe.Float 0.;
-                Dataframe.Int 1;
-              |]}
+              raw_data={
+                date=Date.of_string "2012-01-05";
+                opening=5.;
+                high=11.;
+                low=4.;
+                close=10.;
+                ttm=0.;
+                days=1;
+                percent_change=0.;
+              }}
     let b1 = {a1 with
               date=Date.of_string "2012-01-05";
-              raw_data=[|
-                Dataframe.String "2012-01-05";
-                Dataframe.Float 9.;
-                Dataframe.Float 11.;
-                Dataframe.Float 4.;
-                Dataframe.Float 10.;
-                Dataframe.Float 0.;
-                Dataframe.Int 1;
-              |]
-             }
+              raw_data={
+                date=Date.of_string "2012-01-05";
+                opening=9.;
+                high=11.;
+                low=4.;
+                close=10.;
+                ttm=0.;
+                days=1;
+                percent_change=0.;
+              }}
     let b2 = {a1 with
               date=Date.of_string "2012-01-06";
-              raw_data=[|
-                Dataframe.String "2012-01-06";
-                Dataframe.Float 11.;
-                Dataframe.Float 11.;
-                Dataframe.Float 4.;
-                Dataframe.Float 9.;
-                Dataframe.Float 0.;
-                Dataframe.Int 1;
-              |]
-             }             
+              raw_data={
+                date=Date.of_string "2012-01-06";
+                opening=11.;
+                high=11.;
+                low=4.;
+                close=9.;
+                ttm=0.;
+                days=1;
+                percent_change=0.;
+              }}             
     let c1 = Option.value_exn (Cursor.Data_cursor.create [a1;a2;a3;a4;a5])
     let c2 = Option.value_exn (Cursor.Data_cursor.create [b1;b2])
     let%test "test-status_combine_1" = status_combine_1 c1

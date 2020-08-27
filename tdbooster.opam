@@ -16,7 +16,6 @@ depends: [
   "ppx_inline_test"
   "ppx_jane"
   "yojson"
-  "owl"
 ]
 build: [
   ["dune" "subst"] {pinned}

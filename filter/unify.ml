@@ -43,13 +43,13 @@ let unify code (zz800: Deriving.Type.Derived_data.t list) (deriving_data: Derivi
   | List.Or_unequal_lengths.Unequal_lengths -> failwith "unequal length of data"
   
 
-let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t array) (cl: Loader.Type.RawData.t array) : Type.Market_data.t =
+let marketinfo (hg: Loader.Type.RawData.t list) (gc: Loader.Type.RawData.t list) (cl: Loader.Type.RawData.t list) : Type.Market_data.t =
   let module C = Strategy.Cursor.RawData_cursor in
-  let gc_c' = C.create_exn (Array.to_list gc) in
+  let gc_c' = C.create_exn gc in
   let gc_c  = C.move_to_last gc_c' in
-  let hg_c' = C.create_exn (Array.to_list hg) in
+  let hg_c' = C.create_exn hg in
   let hg_c  = C.move_to_last hg_c' in
-  let cl_c' = C.create_exn (Array.to_list cl) in
+  let cl_c' = C.create_exn cl in
   let cl_c  = C.move_to_last cl_c' in
   let gc_data = Data_array.data_point_Nday gc_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
   let hg_data = Data_array.data_point_Nday hg_c 120 |> List.map ~f:(fun (d, v) -> (Date.to_string d, v)) in
@@ -66,7 +66,7 @@ let marketinfo (hg: Loader.Type.RawData.t array) (gc: Loader.Type.RawData.t arra
 
 type datamap = (string,
  Deriving.Type.Derived_data.t list * Deriving.Type.Derived_data.t list *
- Owl.Dataframe.elt array array, String.comparator_witness) Map.t
+ Loader.Type.raw_data, String.comparator_witness) Map.t
     
 let industry_trend (m : datamap) =
   let cm = Map.map m ~f:(fun (day_k, _, _) -> C.create_exn day_k) in

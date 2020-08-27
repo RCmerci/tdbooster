@@ -103,7 +103,7 @@ let f codes output_dir refresh_data stats backtest =
           Loader.From_txt.read_from_file (Filename.concat output_dir code) (Filename.concat output_dir (code ^ ".ttm"))))
     in
     let rawdata = read_from_file ~output_dir ~code in
-    let raw_day_k = Owl.Dataframe.to_rows rawdata in
+    let raw_day_k = rawdata in
     let week_k = Option.value_exn ~message:(Printf.sprintf "code: %s" code) (Deriving.Unify.unify_week rawdata) in
     let day_k = Option.value_exn ~message:(Printf.sprintf "code: %s" code) (Deriving.Unify.unify_day rawdata) in
     (code, (day_k, week_k, raw_day_k)) in

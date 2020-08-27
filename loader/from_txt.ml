@@ -1,8 +1,6 @@
 open Core
-open Owl
 
-
-let parse_line line : (Owl.Dataframe.elt array) option =
+let parse_line line : Type.raw_data_elem option =
   let elems =
     String.split line ~on:' ' |> List.filter ~f:(fun s -> String.length s > 0)
   in
@@ -17,18 +15,18 @@ let parse_line line : (Owl.Dataframe.elt array) option =
       let opening = Float.of_string opening_ in
       let high = Float.of_string high_ in
       let low = Float.of_string low_ in
-      let closing = Float.of_string closing_ in
+      let close = Float.of_string closing_ in
       let days = 1 in
-      Some
-        [|
-          Dataframe.String (Date.to_string date);
-          Dataframe.Float opening;
-          Dataframe.Float high;
-          Dataframe.Float low;
-          Dataframe.Float closing;
-          Dataframe.Float 0.;
-          Dataframe.Int days;
-        |]
+      Some {
+        date;
+        opening;
+        high;
+        low;
+        close;
+        ttm=0.;
+        days;
+        percent_change=0.;
+      }
     with _ -> None )
   | _ ->
     None
@@ -50,7 +48,7 @@ let read_from_string_lines lines ttm_lines : Type.raw_data =
   match (lines, ttm_lines) with
   | (_h :: t, _ :: t') | (_h :: t, t')->
     let h = match (Hashtbl.create_mapped (module Date)
-                     ~get_key:(fun (x:Dataframe.elt array) -> Type.date x) ~get_data:(fun x -> x)
+                     ~get_key:(fun (x:Type.raw_data_elem) -> x.date) ~get_data:(fun x -> x)
                      (List.map t ~f:parse_line |> List.filter_opt)) with
     | `Duplicate_keys _ -> failwith "Hashtbl.create_mapped"
     | `Ok h -> h
@@ -63,11 +61,10 @@ let read_from_string_lines lines ttm_lines : Type.raw_data =
     in
     Hashtbl.merge h h' ~f:(fun ~key:_ -> function
         | `Left x -> Some x
-        | `Both (x, y) -> Type.set_ttm x y; Some x
+        | `Both (x, y) -> Some {x with ttm=y}
         | _ -> None)
     |> Hashtbl.to_alist |> List.unzip |> snd |> List.sort
-      ~compare:(fun (a:Dataframe.elt array) (b:Dataframe.elt array) -> Date.compare (Type.date a) (Type.date b))
-    |> Type.make_raw_data
+      ~compare:(fun (a:Type.raw_data_elem) (b:Type.raw_data_elem) -> Date.compare a.date b.date)
   | _ ->
       failwith "empty data"
 
@@ -87,11 +84,7 @@ let%test_unit "testunit-read_from_string_lines" =
 
 let%test "test-read_from_string_lines" =
   let datal = read_from_string_lines (String.split_lines Testdata.Data.data) (String.split_lines Testdata.Data.ttm_data) in
-  Dataframe.row_num datal > 0
+  List.length datal > 0
   &&
-  let last = Dataframe.get_row  datal (Dataframe.row_num datal-1) in
+  let last = List.last_exn datal in
   Date.equal (Type.date last) (Date.of_string "2019-10-11")
-
-
-
-

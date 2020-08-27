@@ -1,6 +1,5 @@
 open Core
 open Option.Monad_infix
-open Owl
     
 (* https://baike.baidu.com/item/MACD%E6%8C%87%E6%A0%87?fromtitle=MACD&fromid=3334786 *)
 
@@ -65,7 +64,7 @@ let macd_dif_dea (data_list : Loader.Type.raw_data) :
     Debug.amf [%here]
       "unequal length of time_list(%d), macd_list(%d), dif_list(%d), \
        dea_list(%d), raw_data_list len: %d"
-      l1 l2 l3 l4 (Dataframe.row_num data_list) ;
+      l1 l2 l3 l4 (List.length data_list) ;
     None )
   else
     let zipped =

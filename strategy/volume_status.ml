@@ -1,6 +1,5 @@
 (* open Core
  * open Poly
- * open Owl
  * open Option.Monad_infix
  * 
  * (\* volume of `end'` great than `percent` volumes in [`start`, `end'`] *\)
