@@ -82,3 +82,13 @@ let%test "test-month_k" =
   in
   let month_data_list = month_k datal in
   List.for_all (Loader.Type.days_col month_data_list) ~f:(fun e -> e < 30)
+
+let%test "test-month_k_percent_change" =
+  let datal =
+    Loader.From_txt.read_from_string_lines
+      (String.split_lines Testdata.Data.data)
+      []
+  in
+  let month_data_list = month_k datal in
+  let last = List.last_exn month_data_list in
+  Float.round_decimal last.percent_change ~decimal_digits:4 = 0.0214

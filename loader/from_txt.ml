@@ -1,11 +1,18 @@
 open Core
 
+let parse_percent_change s =
+  if String.equal s "--" then
+    0.
+  else
+    let s' = String.rstrip ~drop:(Char.equal '%') s in
+    Float.of_string s' /. 100.
+
 let parse_line line : Type.raw_data_elem option =
   let elems =
     String.split line ~on:' ' |> List.filter ~f:(fun s -> String.length s > 0)
   in
   match elems with
-  | time_ :: opening_ :: high_ :: low_ :: closing_ :: _t -> (
+  | time_ :: opening_ :: high_ :: low_ :: closing_ :: percent_change_ :: _t -> (
     try
       let time =
         Time.parse time_ ~fmt:"%Y-%m-%d"
@@ -16,9 +23,9 @@ let parse_line line : Type.raw_data_elem option =
       let high = Float.of_string high_ in
       let low = Float.of_string low_ in
       let close = Float.of_string closing_ in
+      let percent_change = parse_percent_change percent_change_ in
       let days = 1 in
-      Some
-        { date; opening; high; low; close; ttm = 0.; days; percent_change = 0. }
+      Some { date; opening; high; low; close; ttm = 0.; days; percent_change }
     with _ -> None )
   | _ -> None
 
@@ -93,3 +100,13 @@ let%test "test-read_from_string_lines" =
   &&
   let last = List.last_exn datal in
   Date.equal (Type.date last) (Date.of_string "2019-10-11")
+
+let%test "test-read_from_string_lines_percent_change" =
+  let datal =
+    read_from_string_lines
+      (String.split_lines Testdata.Data.data)
+      (String.split_lines Testdata.Data.ttm_data)
+  in
+  let first = List.hd_exn datal in
+  let last = List.last_exn datal in
+  Float.equal last.percent_change 0.017 && Float.equal first.percent_change 0.

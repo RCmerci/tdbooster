@@ -66,3 +66,13 @@ let%test "test-week_k" =
   in
   let week_data_list = week_k datal in
   List.for_all (Loader.Type.days_col week_data_list) ~f:(fun e -> e < 6)
+
+let%test "test-week_k_percent_change" =
+  let datal =
+    Loader.From_txt.read_from_string_lines
+      (String.split_lines Testdata.Data.data)
+      []
+  in
+  let week_data_list = week_k datal in
+  let last = List.last_exn week_data_list in
+  Float.round_decimal last.percent_change ~decimal_digits:4 = 0.0214
