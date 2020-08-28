@@ -21,8 +21,8 @@ module LogAndWarnWriter : sig
 
   val log : string -> unit m
 
-  val logf: ('a -> string, unit, string) format -> 'a -> unit m
-  
+  val logf : ('a -> string, unit, string) format -> 'a -> unit m
+
   val warn : string -> unit m
 
   val ( >>= ) : 'a m -> ('a -> 'b m) -> 'b m
@@ -33,16 +33,16 @@ module LogAndWarnWriter : sig
 end = struct
   type 'a m = Log.t * Warning.t * 'a
 
-  let log s = ([s], [], ())
+  let log s = ([ s ], [], ())
 
-  let logf f s = ([Printf.sprintf f s], [], ())
-  
-  let warn s = ([], [s], ())
+  let logf f s = ([ Printf.sprintf f s ], [], ())
+
+  let warn s = ([], [ s ], ())
 
   let ( >>= ) m f =
     let l, w, a = m in
     let l', w', a' = f a in
-    (Log.concat [l'; l], Warning.concat [w'; w], a')
+    (Log.concat [ l'; l ], Warning.concat [ w'; w ], a')
 
   let return a = ([], [], a)
 

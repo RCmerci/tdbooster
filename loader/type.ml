@@ -1,18 +1,19 @@
 open Core
 
-(* date: 日k:当天, 周k:周第一天, 月k:月第一天 
- * days: 日k: 1, 周k: 本周交易天数, 月k: 本月交易天数 
- * [|"date";"open";"high";"low";"close";"ttm";"days"|]  *)
-type raw_data_elem = {
-  date: Date.t;
-  opening: float;
-  high: float;
-  low: float;
-  close: float;
-  ttm: float;
-  days: int;
-  percent_change: float;
-} 
+(* date: 日k:当天, 周k:周第一天, 月k:月第一天
+ * days: 日k: 1, 周k: 本周交易天数, 月k: 本月交易天数
+ * [|"date";"open";"high";"low";"close";"ttm";"days"|] *)
+type raw_data_elem =
+  { date : Date.t
+  ; opening : float
+  ; high : float
+  ; low : float
+  ; close : float
+  ; ttm : float
+  ; days : int
+  ; percent_change : float
+  }
+
 type raw_data = raw_data_elem list
 
 let date_col t = List.map t ~f:(fun e -> e.date)
@@ -30,7 +31,6 @@ let ttm_col t = List.map t ~f:(fun e -> e.ttm)
 let days_col t = List.map t ~f:(fun e -> e.days)
 
 let percent_change t = List.map t ~f:(fun e -> e.percent_change)
-
 
 let date_string e = Date.to_string e.date
 
@@ -56,11 +56,12 @@ module RawData = struct
   let to_string _ = "<unimplemented>"
 end
 
-
 module IndustryList = struct
-  type one = {
-    category: string;
-    codes: string list;
-  }[@@deriving show]
+  type one =
+    { category : string
+    ; codes : string list
+    }
+  [@@deriving show]
+
   type t = one list [@@deriving show]
 end
