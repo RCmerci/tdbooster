@@ -1,0 +1,6 @@
+(library
+ (inline_tests)
+ (name score)
+ (libraries core)
+ (preprocess
+  (pps ppx_inline_test)))
