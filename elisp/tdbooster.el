@@ -89,15 +89,17 @@
 (defvar tdbooster--relative-strength "
 {\\huge %s} &
 \\begin{tikzpicture}
-	\\begin{axis}[hide x axis, hide y axis, height=3cm, width=7cm]
+	\\begin{axis}[height=3cm, width=7cm]
+        \\addplot+[mark=., color=red] coordinates { (0, 0) (65, 0) };
 	\\addplot+[mark=., color=black] coordinates { %s };
 	\\end{axis}
-\\end{tikzpicture} \\\\
+\\end{tikzpicture} &
+%d \\\\
 ")
 (defvar tdbooster--relative-strength-table "
 \\begin{center}
-\\begin{tabular}{ | c | c | }
-& 120d \\\\
+\\begin{tabular}{ | c | c | c | }
+& 65d & sum \\\\
 \\hline
 %s
 \\hline
@@ -218,7 +220,8 @@
 		      (format tdbooster--relative-strength code
 			      (s-join " " (seq-mapn (lambda (n datapoint)
 						      (format "(%d, %f)" n datapoint))
-						    (number-sequence 1 200 1) rel)))))
+						    (number-sequence 1 200 1) rel))
+			      (apply #'+ rel))))
 		  (seq-subseq data subtable-start subtable-length))))
     (format tdbooster--relative-strength-table (s-join "\n\\hline\n" r))))
 
@@ -386,18 +389,23 @@
 	      (let* ((begin (point))
 		     (end (progn (forward-list) (point)))
 		     (json (seq-map (lambda (e)
-				      `(,(alist-get 'type e) ,(alist-get 'symbol e) ,(alist-get 'spell e) ,(alist-get 'name e)))
+				      `(,(alist-get 'type e) ,(alist-get 'symbol e) ,(alist-get 'spell e) ,(alist-get 'name e) ,(alist-get 'price e)))
 				    (json-read-from-string (buffer-substring-no-properties begin end)))))
 		(kill-buffer)
 		json)))
       (setq detail-info (tdbooster--query-detail symbol-info))
-      (seq-map (lambda (syminfo) (format "%s.%s %s %s (%+.2f)"
-    					 (car syminfo) (cadr syminfo) (caddr syminfo) (cadddr syminfo)
-    					 (* 100
-					    (alist-get 'percent (alist-get
-								 (intern (tdbooster--to-code (car syminfo) (cadr syminfo)))
-								 detail-info)
-						       0.0))))
+      (seq-map (lambda (syminfo)
+		 (format "%s.%s %s %s (%+.2f) (%s)"
+    			 (car syminfo) (cadr syminfo) (caddr syminfo) (cadddr syminfo)
+    			 (* 100
+			    (alist-get 'percent (alist-get
+						 (intern (tdbooster--to-code (car syminfo) (cadr syminfo)))
+						 detail-info)
+				       0.0))
+			 (alist-get 'price (alist-get
+					    (intern (tdbooster--to-code (car syminfo) (cadr syminfo)))
+					    detail-info)
+				       0.0)))
 	       symbol-info))
     ))
 

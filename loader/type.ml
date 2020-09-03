@@ -4,7 +4,7 @@ open Core
  * days: 日k: 1, 周k: 本周交易天数, 月k: 本月交易天数
  * [|"date";"open";"high";"low";"close";"ttm";"days"|] *)
 type raw_data_elem =
-  { date : Date.t
+  { date : Date.t [@opaque]
   ; opening : float
   ; high : float
   ; low : float
@@ -13,6 +13,7 @@ type raw_data_elem =
   ; days : int
   ; percent_change : float
   }
+[@@deriving show]
 
 type raw_data = raw_data_elem list
 
@@ -30,7 +31,7 @@ let ttm_col t = List.map t ~f:(fun e -> e.ttm)
 
 let days_col t = List.map t ~f:(fun e -> e.days)
 
-let percent_change t = List.map t ~f:(fun e -> e.percent_change)
+let percent_change_col t = List.map t ~f:(fun e -> e.percent_change)
 
 let date_string e = Date.to_string e.date
 
@@ -47,6 +48,8 @@ let close e = e.close
 let ttm e = e.ttm
 
 let days e = e.days
+
+let percent_change e = e.percent_change
 
 module RawData = struct
   type t = raw_data_elem

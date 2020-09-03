@@ -18,7 +18,7 @@ if lg.error_code != "0":
 # 分钟线指标：date,time,code,open,high,low,close,volume,amount,adjustflag
 for i in (1,2,3):
     rs = bs.query_history_k_data_plus(code,
-                                      "date,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST",
+                                      "date,open,high,low,close,pctChg,preclose,volume,amount,adjustflag,turn,tradestatus,isST",
                                       start_date='2010-01-01', end_date=str(datetime.date.today()),
                                       frequency="d", adjustflag="2")
     if rs.error_code != '0':

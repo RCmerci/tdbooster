@@ -1,4 +1,5 @@
 open Core
+open Poly
 module C = Strategy.Cursor.Data_cursor
 
 let unify code (zz800 : Deriving.Type.Derived_data.t list)
@@ -15,7 +16,6 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
   let rsi6_lt_30' = Set.of_list (module Date) rsi6_lt_30 in
   let c = C.create_exn deriving_data in
   let c' = C.move_to_last c in
-  (* goto last entry *)
   let ma_up = Ma_ema.ma_up c' in
   let ma_arranged = Ma_ema.ma_arrangement c' in
   let price_less_ma20 = Ma_ema.price_lessthan_ma20 c' in
@@ -27,6 +27,7 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
     List.map2 (Deriving.Op.sub_by_startdate deriving_data three_month_ago)
       (Deriving.Op.sub_by_startdate zz800 three_month_ago) ~f:(fun e zz800 ->
         ( assert (Date.equal e.date zz800.date);
+          assert (Loader.Type.percent_change e.raw_data < 1.);
           { date = e.date
           ; industry
           ; rsi_golden_cross = Set.mem golden_cross_points' e.date
@@ -36,7 +37,9 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
           ; ma_arranged
           ; price_less_ma20
           ; relative_strength =
-              Loader.Type.close e.raw_data /. Loader.Type.close zz800.raw_data
+              ( Loader.Type.percent_change e.raw_data
+              -. Loader.Type.percent_change zz800.raw_data )
+              *. 100.
           ; price_before_20
           ; price_before_60
           ; price_before_120
@@ -58,23 +61,23 @@ let marketinfo (hg : Loader.Type.RawData.t list)
   let cl_c' = C.create_exn cl in
   let cl_c = C.move_to_last cl_c' in
   let gc_data =
-    Data_array.data_point_Nday gc_c 120
+    Data_array.data_point_Nday gc_c 120 Loader.Type.close
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let hg_data =
-    Data_array.data_point_Nday hg_c 120
+    Data_array.data_point_Nday hg_c 120 Loader.Type.close
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let cl_data =
-    Data_array.data_point_Nday cl_c 120
+    Data_array.data_point_Nday cl_c 120 Loader.Type.close
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let hg_div_gc =
-    Data_array.data_div_point_120d hg_c gc_c
+    Data_array.data_div_point_120d_close hg_c gc_c
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let cl_div_gc =
-    Data_array.data_div_point_120d cl_c gc_c
+    Data_array.data_div_point_120d_close cl_c gc_c
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   { gc = gc_data; hg = hg_data; cl = cl_data; hg_div_gc; cl_div_gc }
