@@ -93,3 +93,7 @@ type datamap =
 let industry_trend (m : datamap) =
   let cm = Map.map m ~f:(fun (day_k, _, _) -> C.create_exn day_k) in
   Industry_trend.above_ma20_trend cm
+  |> List.map ~f:(fun (cat, l) ->
+         ( cat
+         , List.map l ~f:(fun (date, s) ->
+               (Date.to_string date, Score.normalize s)) ))

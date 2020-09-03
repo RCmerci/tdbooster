@@ -17,9 +17,9 @@ let above_ma20_trend_aux (cm : cursorMap) (e : Loader.Type.IndustryList.one) =
           Some
             (List.map datalist ~f:(fun e ->
                  if Loader.Type.close e.raw_data > e.ma20 then
-                   (Date.to_string e.date, 1)
+                   (e.date, 1)
                  else
-                   (Date.to_string e.date, 0))))
+                   (e.date, 0))))
   in
   let l' = List.filter_opt l in
   assert (List.length l' > 0);
@@ -33,8 +33,26 @@ let above_ma20_trend_aux (cm : cursorMap) (e : Loader.Type.IndustryList.one) =
       ~f:(fun r e' -> List.map2_exn r e' ~f:( + ))
   in
   List.zip_exn datelist
-    (List.map l''' ~f:(fun e -> float_of_int e /. float_of_int totalcount))
+    (List.map l''' ~f:(fun e ->
+         Score.create ~min:0. ~max:1. (float_of_int e /. float_of_int totalcount)))
 
 let above_ma20_trend (cm : cursorMap) =
-  List.map Loader.Industry.get_industry_list ~f:(fun e ->
-      (e.category, above_ma20_trend_aux cm e))
+  let r =
+    List.map Loader.Industry.get_industry_list ~f:(fun e ->
+        (e.category, above_ma20_trend_aux cm e))
+  in
+  let sum_table = Hashtbl.create (module Date) in
+  let _ =
+    List.iter r ~f:(fun (_, l) ->
+        List.iter l ~f:(fun (date, score) ->
+            match Hashtbl.find sum_table date with
+            | Some sum' -> Hashtbl.set sum_table ~key:date ~data:(score :: sum')
+            | None -> Hashtbl.set sum_table ~key:date ~data:[ score ]))
+  in
+  let sum_alist =
+    Hashtbl.map sum_table ~f:Score.sum
+    |> Hashtbl.to_alist
+    |> List.sort ~compare:(fun (date1, _) (date2, _) ->
+           Date.compare date1 date2)
+  in
+  ("sum", sum_alist) :: r
