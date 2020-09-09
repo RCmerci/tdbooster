@@ -2,3 +2,4 @@ _build/
 .merlin
 /tdbooster.install
 /.DS_Store
+*.db
