@@ -1,7 +1,7 @@
 open Core
 
 let get_industry_list : Type.IndustryList.t =
-  [ { category = "real estate"
+  [ { category = "房地产"
     ; codes =
         [ "sh.600606"
         ; "sz.000540"
@@ -45,7 +45,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sh.600325"
         ]
     }
-  ; { category = "Capital Market Services"
+  ; { category = "金融服务"
     ; codes =
         [ "sz.300059"
         ; "sh.601099"
@@ -89,7 +89,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.002670"
         ]
     }
-  ; { category = "bank"
+  ; { category = "银行"
     ; codes =
         [ "sh.601398"
         ; "sh.601288"
@@ -131,7 +131,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.002948"
         ]
     }
-  ; { category = "internet"
+  ; { category = "互联网"
     ; codes =
         [ "sz.002425"
         ; "sz.300315"
@@ -175,7 +175,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sh.600640"
         ]
     }
-  ; { category = "Food industry"
+  ; { category = "食品"
     ; codes =
         [ "sh.600873"
         ; "sh.600887"
@@ -219,7 +219,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.002053"
         ]
     }
-  ; { category = "insurance"
+  ; { category = "保险"
     ; codes =
         [ "sh.600291"
         ; "sh.601318"
@@ -230,7 +230,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.000627"
         ]
     }
-  ; { category = "beverage"
+  ; { category = "酒&饮料"
     ; codes =
         [ "sh.600519"
         ; "sz.000858"

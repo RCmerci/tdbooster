@@ -1,0 +1,6 @@
+(library
+ (inline_tests)
+ (name data)
+ (libraries core sqlite3 loader deriving)
+ (preprocess
+  (pps ppx_inline_test)))

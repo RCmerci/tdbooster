@@ -84,8 +84,7 @@ let refresh_data_aux codes output_dir =
 
 let f codes output_dir refresh_data stats backtest =
   let all_codes =
-    List.concat
-      [ codes; Loader.Industry.all_codes; Loader.Common_codes.common_codes ]
+    List.concat [ codes; Loader.Industry.all_codes; Data.Const.common_codes ]
     |> List.stable_dedup
   in
   if refresh_data then refresh_data_aux all_codes output_dir;
@@ -132,9 +131,7 @@ let f codes output_dir refresh_data stats backtest =
     if List.length backtest > 0 then
       Yojson.Safe.from_string "{\"backtest\": true}"
     else if List.length stats = 0 then
-      let zz800_day_k, zz800_week_k, _ =
-        Map.find_exn m Loader.Common_codes.zz800
-      in
+      let zz800_day_k, zz800_week_k, _ = Map.find_exn m Data.Const.zz800 in
       let data =
         Map.mapi selected_m ~f:(fun ~key:code ~data:(day_k, week_k, _) ->
             try filter code day_k week_k zz800_day_k zz800_week_k
