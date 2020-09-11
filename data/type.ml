@@ -11,7 +11,7 @@ type base_data_elem =
   ; percent_change : float
   }
 
-type base_data = base_data_elem list
+type base_data = base_data_elem array
 
 type base_data_map = (string, base_data, String.comparator_witness) Map.t
 
@@ -35,7 +35,7 @@ type derived_data_elem =
   ; kdj933 : float * float * float
   }
 
-type derived_data = derived_data_elem list
+type derived_data = derived_data_elem array
 
 type derived_data_map = (string, derived_data, String.comparator_witness) Map.t
 
@@ -44,7 +44,7 @@ type industry_trend_data_elem =
   ; above_ma20_percent : float
   }
 
-type industry_trend_data = industry_trend_data_elem list
+type industry_trend_data = industry_trend_data_elem array
 
 type industry_trend_data_map =
   (string, industry_trend_data, String.comparator_witness) Map.t
