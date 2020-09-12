@@ -1,6 +1,6 @@
 open Core
 open Poly
-module C = Strategy.Cursor.Data_cursor
+module C = L1.Cursor.Data_cursor
 
 let unify code (zz800 : Deriving.Type.Derived_data.t list)
     (deriving_data : Deriving.Type.Derived_data.t list) :
@@ -53,7 +53,7 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
 let marketinfo (hg : Loader.Type.RawData.t list)
     (gc : Loader.Type.RawData.t list) (cl : Loader.Type.RawData.t list) :
     Type.Market_data.t =
-  let module C = Strategy.Cursor.RawData_cursor in
+  let module C = L1.Cursor.RawData_cursor in
   let gc_c' = C.create_exn gc in
   let gc_c = C.move_to_last gc_c' in
   let hg_c' = C.create_exn hg in

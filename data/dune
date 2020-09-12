@@ -1,6 +1,6 @@
 (library
  (inline_tests)
  (name data)
- (libraries core sqlite3 loader deriving score)
+ (libraries core sqlite3 loader deriving filter score l1)
  (preprocess
   (pps ppx_inline_test)))

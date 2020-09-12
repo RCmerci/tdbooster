@@ -1,6 +1,6 @@
 open Core
 open Poly
-module C = Strategy.Cursor.Data_cursor
+module C = L1.Cursor.Data_cursor
 
 (* ma20, ma60, ma120 最近3点为上升趋势 *)
 let ma_up (c : C.t) : bool =

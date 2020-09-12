@@ -1,6 +1,6 @@
 (library
  (inline_tests)
  (name filter)
- (libraries core loader deriving score strategy ppx_deriving_yojson.runtime)
+ (libraries core loader deriving score strategy ppx_deriving_yojson.runtime l1)
  (preprocess
   (pps ppx_inline_test ppx_deriving.show ppx_here ppx_deriving_yojson)))

@@ -1,7 +1,7 @@
 open Core
 
 let get_industry_list : Type.IndustryList.t =
-  [ { category = "房地产"
+  [ { category = "real_estate"
     ; codes =
         [ "sh.600606"
         ; "sz.000540"
@@ -45,7 +45,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sh.600325"
         ]
     }
-  ; { category = "金融服务"
+  ; { category = "capital_market_services"
     ; codes =
         [ "sz.300059"
         ; "sh.601099"
@@ -89,7 +89,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.002670"
         ]
     }
-  ; { category = "银行"
+  ; { category = "bank"
     ; codes =
         [ "sh.601398"
         ; "sh.601288"
@@ -131,7 +131,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.002948"
         ]
     }
-  ; { category = "互联网"
+  ; { category = "internet"
     ; codes =
         [ "sz.002425"
         ; "sz.300315"
@@ -175,7 +175,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sh.600640"
         ]
     }
-  ; { category = "食品"
+  ; { category = "food"
     ; codes =
         [ "sh.600873"
         ; "sh.600887"
@@ -219,7 +219,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.002053"
         ]
     }
-  ; { category = "保险"
+  ; { category = "insurance"
     ; codes =
         [ "sh.600291"
         ; "sh.601318"
@@ -230,7 +230,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sz.000627"
         ]
     }
-  ; { category = "酒&饮料"
+  ; { category = "beverage"
     ; codes =
         [ "sh.600519"
         ; "sz.000858"
@@ -274,7 +274,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sh.600543"
         ]
     }
-  ; { category = "pharmaceutical manufacturing"
+  ; { category = "pharmaceutical_manufacturing"
     ; codes =
         [ "sh.600196"
         ; "sz.300122"
@@ -362,7 +362,7 @@ let get_industry_list : Type.IndustryList.t =
         ; "sh.603517"
         ]
     }
-  ; { category = "航空运输业"
+  ; { category = "air_transport"
     ; codes =
         [ "sh.600004"
         ; "sh.600009"

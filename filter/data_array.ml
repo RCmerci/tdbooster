@@ -1,6 +1,6 @@
 open Core
-module C = Strategy.Cursor.RawData_cursor
-module C2 = Strategy.Cursor.Data_cursor
+module C = L1.Cursor.RawData_cursor
+module C2 = L1.Cursor.Data_cursor
 
 let data_point_Nday2 (type v) (c : C2.t) n (f : Loader.Type.raw_data_elem -> v)
     : (Date.t * v) list =

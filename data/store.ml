@@ -1,6 +1,8 @@
 open Core
 open Sqlite3
 
+type raw_data_list = Loader.Type.raw_data
+
 let db_open ~config_dir =
   Sqlite3.db_open (Filename.concat config_dir "tdbooster.db")
 
@@ -8,16 +10,76 @@ let all_codes ~custom_codes =
   List.concat [ custom_codes; Const.industry_code_list; Const.common_codes ]
   |> List.stable_dedup
 
-let read_all_codes_base_data ~config_dir ~custom_codes =
-  List.map (all_codes ~custom_codes) ~f:(fun code ->
-      Tuple2.create code
-        ( match code with
-        | c when List.mem Const.[ cl; gc; hg ] c ~equal:String.( = ) ->
-          Loader.From_sina.Futures.read_from_file ~output_dir:config_dir ~code
-        | _ ->
-          Loader.From_txt.read_from_file
-            (Filename.concat config_dir code)
-            (Filename.concat config_dir (code ^ ".ttm")) ))
+module ReadCodesBaseData : sig
+  type codes_and_raw_data_list
+
+  type codes_and_raw_week_data_list
+
+  type codes_and_raw_month_data_list
+
+  val read_all_codes_base_data :
+    config_dir:string -> custom_codes:string list -> codes_and_raw_data_list
+
+  val read_all_codes_week_base_data :
+    codes_and_raw_data_list -> codes_and_raw_week_data_list
+
+  val read_all_codes_month_base_data :
+    codes_and_raw_data_list -> codes_and_raw_month_data_list
+
+  val unpack : codes_and_raw_data_list -> (string * Loader.Type.raw_data) list
+
+  val pack : (string * Loader.Type.raw_data) list -> codes_and_raw_data_list
+
+  val unpack_week :
+    codes_and_raw_week_data_list -> (string * Loader.Type.raw_data) list
+
+  val pack_week :
+    (string * Loader.Type.raw_data) list -> codes_and_raw_week_data_list
+
+  val unpack_month :
+    codes_and_raw_month_data_list -> (string * Loader.Type.raw_data) list
+
+  val pack_month :
+    (string * Loader.Type.raw_data) list -> codes_and_raw_month_data_list
+end = struct
+  type codes_and_raw_data_list = (string * Loader.Type.raw_data) list
+
+  type codes_and_raw_week_data_list = codes_and_raw_data_list
+
+  type codes_and_raw_month_data_list = codes_and_raw_data_list
+
+  let unpack = ident
+
+  let pack = ident
+
+  let unpack_week = ident
+
+  let pack_week = ident
+
+  let unpack_month = ident
+
+  let pack_month = ident
+
+  let read_all_codes_base_data ~config_dir ~custom_codes :
+      codes_and_raw_data_list =
+    List.map (all_codes ~custom_codes) ~f:(fun code ->
+        Tuple2.create code
+          ( match code with
+          | c when List.mem Const.[ cl; gc; hg ] c ~equal:String.( = ) ->
+            Loader.From_sina.Futures.read_from_file ~output_dir:config_dir ~code
+          | _ ->
+            Loader.From_txt.read_from_file
+              (Filename.concat config_dir code)
+              (Filename.concat config_dir (code ^ ".ttm")) ))
+
+  let read_all_codes_week_base_data codes_and_raw_data_list =
+    List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
+        (code, Deriving.Week_k.week_k raw_data_list))
+
+  let read_all_codes_month_base_data codes_and_raw_data_list =
+    List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
+        (code, Deriving.Month_k.month_k raw_data_list))
+end
 
 let dwm_to_string dwm =
   match dwm with
@@ -77,8 +139,10 @@ module BaseData = struct
     in
     wrap_txn db f
 
-  let store db ~dwm codes_and_raw_data_list =
-    List.iter codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
+  open ReadCodesBaseData
+
+  let store db ~dwm (codes_and_raw_data_list : codes_and_raw_data_list) =
+    List.iter (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
         (* create table if not exists, so ignore error here *)
         ignore (table_create db ~dwm code);
         to_db db ~dwm code raw_data_list)
@@ -87,18 +151,29 @@ module BaseData = struct
     store db ~dwm:`DAY codes_and_raw_data_list
 
   let store_week_data db codes_and_raw_data_list =
-    let codes_and_raw_week_data_list =
-      List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-          (code, Deriving.Week_k.week_k raw_data_list))
-    in
-    store db ~dwm:`WEEK codes_and_raw_week_data_list
+    store db ~dwm:`WEEK
+      (pack
+         (unpack_week (read_all_codes_week_base_data codes_and_raw_data_list)))
 
   let store_month_data db codes_and_raw_data_list =
-    let codes_and_raw_week_data_list =
-      List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-          (code, Deriving.Month_k.month_k raw_data_list))
-    in
-    store db ~dwm:`MONTH codes_and_raw_week_data_list
+    store db ~dwm:`MONTH
+      (pack
+         (unpack_month (read_all_codes_month_base_data codes_and_raw_data_list)))
+
+  let to_day_base_data raw_data_list = raw_data_list
+
+  let to_week_base_data raw_data_list = Deriving.Week_k.week_k raw_data_list
+
+  let to_month_base_data raw_data_list = Deriving.Month_k.month_k raw_data_list
+
+  let to_day_derived_data raw_data_list =
+    Option.value (Deriving.Unify.unify_day raw_data_list) ~default:[]
+
+  let to_week_derived_data raw_data_list =
+    Option.value (Deriving.Unify.unify_week raw_data_list) ~default:[]
+
+  let to_month_derived_data raw_data_list =
+    Option.value (Deriving.Unify.unify_month raw_data_list) ~default:[]
 end
 
 module DerivedData = struct
@@ -164,14 +239,7 @@ module DerivedData = struct
     in
     wrap_txn db f
 
-  let raw_data_to_day_derived_data raw_data_list =
-    Option.value (Deriving.Unify.unify_day raw_data_list) ~default:[]
-
-  let raw_data_to_week_derived_data raw_data_list =
-    Option.value (Deriving.Unify.unify_week raw_data_list) ~default:[]
-
-  let raw_data_to_month_derived_data raw_data_list =
-    Option.value (Deriving.Unify.unify_month raw_data_list) ~default:[]
+  open ReadCodesBaseData
 
   let store db ~dwm codes_and_derived_data_list =
     List.iter codes_and_derived_data_list ~f:(fun (code, derived_data_list) ->
@@ -180,47 +248,62 @@ module DerivedData = struct
 
   let store_day_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
-      List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-          (code, raw_data_to_day_derived_data raw_data_list))
+      List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
+          (code, BaseData.to_day_derived_data raw_data_list))
     in
     store db ~dwm:`DAY codes_and_derived_data_list
 
   let store_week_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
-      List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-          (code, raw_data_to_week_derived_data raw_data_list))
+      List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
+          (code, BaseData.to_week_derived_data raw_data_list))
     in
     store db ~dwm:`WEEK codes_and_derived_data_list
 
   let store_month_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
-      List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-          (code, raw_data_to_month_derived_data raw_data_list))
+      List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
+          (code, BaseData.to_month_derived_data raw_data_list))
     in
     store db ~dwm:`MONTH codes_and_derived_data_list
+
+  let to_cursormap codes_and_raw_data_list =
+    let codes_and_derived_data_list =
+      List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
+          (code, BaseData.to_day_derived_data raw_data_list))
+    in
+    let module C = L1.Cursor.Data_cursor in
+    Map.of_alist_reduce
+      (module String)
+      codes_and_derived_data_list
+      ~f:(fun b _ -> b)
+    |> Map.map ~f:C.create_exn
 end
 
 module IndustryTrendData = struct
-  let tablename industry = "industry_trend_" ^ industry
+  let tablename ~dwm industry =
+    "industry_trend_" ^ dwm_to_string dwm ^ "_" ^ industry
 
-  let table_drop db industry = exec db ("DROP TABLE " ^ tablename industry)
+  let table_drop db ~dwm industry =
+    exec db ("DROP TABLE " ^ tablename ~dwm industry)
 
-  let table_create db industry =
+  let table_create db ~dwm industry =
     ignore
       (exec db
-         ( "CREATE TABLE " ^ tablename industry ^ " ("
+         ( "CREATE TABLE " ^ tablename ~dwm industry ^ " ("
          ^ "date TEXT PRIMARY KEY NOT NULL," ^ "above_ma20_percent FLOAT NULL"
          ^ ");" ));
     ignore
       (exec db
-         ("CREATE UNIQUE INDEX index_date on " ^ tablename industry ^ "(date);"))
+         ( "CREATE UNIQUE INDEX index_date on " ^ tablename ~dwm industry
+         ^ "(date);" ))
 
-  let insert_sql industry =
-    "INSERT INTO " ^ tablename industry ^ "(date, above_ma20_percent)"
+  let insert_sql ~dwm industry =
+    "INSERT INTO " ^ tablename ~dwm industry ^ "(date, above_ma20_percent)"
     ^ "VALUES (?, ?)"
 
-  let to_db db industry (data_list : (Date.t * Score.t) list) =
-    let insert_stmt = prepare db (insert_sql industry) in
+  let to_db db ~dwm industry (data_list : (Date.t * Score.t) list) =
+    let insert_stmt = prepare db (insert_sql ~dwm industry) in
     let f () =
       List.iter data_list ~f:(fun (date, score) ->
           reset insert_stmt |> Rc.check;
@@ -232,9 +315,45 @@ module IndustryTrendData = struct
     in
     wrap_txn db f
 
-  let store db industry_and_data_list =
+  open ReadCodesBaseData
+
+  let store db ~dwm industry_and_data_list =
     List.iter industry_and_data_list ~f:(fun (industry, data_list) ->
         (* create table if not exists, so ignore error here *)
-        ignore (table_create db industry);
-        to_db db industry data_list)
+        ignore (table_create db ~dwm industry);
+        to_db db ~dwm industry data_list)
+
+  let store_day_data db codes_and_raw_data_list =
+    let cm = DerivedData.to_cursormap codes_and_raw_data_list in
+    let industry_and_data_list =
+      Filter.Industry_trend.above_ma20_trend
+        ~auxf:Filter.Industry_trend.above_ma20_trend_all_aux cm
+    in
+    store db ~dwm:`DAY industry_and_data_list
+
+  let store_week_data db codes_and_raw_data_list =
+    let codes_and_raw_week_data_list =
+      List.map (unpack codes_and_raw_data_list) ~f:(fun (code, v) ->
+          (code, BaseData.to_week_base_data v))
+    in
+    let cm = DerivedData.to_cursormap (pack codes_and_raw_week_data_list) in
+    let industry_and_data_list =
+      Filter.Industry_trend.above_ma20_trend
+        ~auxf:Filter.Industry_trend.above_ma20_trend_all_aux cm
+    in
+    store db ~dwm:`WEEK industry_and_data_list
+
+  let store_month_data db codes_and_raw_data_list =
+    let codes_and_raw_month_data_list =
+      List.map (unpack codes_and_raw_data_list) ~f:(fun (code, v) ->
+          (code, BaseData.to_month_base_data v))
+    in
+    let cm = DerivedData.to_cursormap (pack codes_and_raw_month_data_list) in
+    let industry_and_data_list =
+      Filter.Industry_trend.above_ma20_trend
+        ~auxf:Filter.Industry_trend.above_ma20_trend_all_aux cm
+    in
+    store db ~dwm:`MONTH industry_and_data_list
 end
+
+(* TODO: add test for module 'BaseData' 'DerivedData' 'InductiveData' *)
