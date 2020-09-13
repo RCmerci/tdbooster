@@ -36,7 +36,7 @@ let month_k_buy c _ _ :
       warn
         (Printf.sprintf "[%s] 滚动市盈率(month): %.2f"
            (Data_cursor.datestring c)
-           (L1_loader.Type.ttm (Data_cursor.current c).raw_data))
+           (L1.Loader.Type.ttm (Data_cursor.current c).raw_data))
       >>= fun _ -> return (Buy (c, None, ()))
   else
     return (Buy_continue None)
@@ -54,13 +54,13 @@ let day_k_buy c ctx _week_ctx :
         (Printf.sprintf "[%s] 找到日k高点(%s/%.2f)"
            (Data_cursor.datestring c)
            (Data_cursor.datestring high_point_c)
-           (L1_loader.Type.high (Data_cursor.current high_point_c).raw_data))
+           (L1.Loader.Type.high (Data_cursor.current high_point_c).raw_data))
     | Buy_skip_to (Some high_point_c, _) ->
       Some
         (Printf.sprintf "[%s] 找到日k高点(%s/%.2f)"
            (Data_cursor.datestring c)
            (Data_cursor.datestring high_point_c)
-           (L1_loader.Type.high (Data_cursor.current high_point_c).raw_data))
+           (L1.Loader.Type.high (Data_cursor.current high_point_c).raw_data))
     | _ -> None
   in
   match ctx with
@@ -86,8 +86,8 @@ let day_k_buy c ctx _week_ctx :
            (Data_cursor.datestring high_point_c))
       >>= fun _ -> return (Buy_quit c)
     else if
-      L1_loader.Type.high (Data_cursor.current high_point_c).raw_data
-      < L1_loader.Type.high (Data_cursor.current c).raw_data
+      L1.Loader.Type.high (Data_cursor.current high_point_c).raw_data
+      < L1.Loader.Type.high (Data_cursor.current c).raw_data
     then
       log
         (Printf.sprintf "[%s] 突破日k高点(%s),买入"
@@ -96,13 +96,13 @@ let day_k_buy c ctx _week_ctx :
       >>= fun _ ->
       warn
         (Printf.sprintf "[%s] 滚动市盈率: %.2f" (Data_cursor.datestring c)
-           (L1_loader.Type.ttm (Data_cursor.current c).raw_data))
+           (L1.Loader.Type.ttm (Data_cursor.current c).raw_data))
       >>= fun _ ->
       return
         (Buy
            ( c
            , Some
-               (L1_loader.Type.high (Data_cursor.current high_point_c).raw_data)
+               (L1.Loader.Type.high (Data_cursor.current high_point_c).raw_data)
            , () ))
     else
       return (Buy_continue (Some high_point_c))
@@ -120,7 +120,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :
     Option.value_map
       (Option.bind
          (Data_cursor.find buy_c ~f:(fun c ->
-              L1_loader.Type.low (Data_cursor.current c).raw_data
+              L1.Loader.Type.low (Data_cursor.current c).raw_data
               < buy_c_low_price buy_price))
          ~f:(fun sellc ->
            Some
@@ -139,7 +139,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :
     let r1 =
       Option.bind
         (Data_cursor.find ~end':h buy_c ~f:(fun c ->
-             L1_loader.Type.low (Data_cursor.current c).raw_data
+             L1.Loader.Type.low (Data_cursor.current c).raw_data
              < buy_c_low_price buy_price))
         ~f:(fun e ->
           logs1 :=
@@ -152,7 +152,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :
     (* 检查后续低于最近一个周k低点 *)
     let r2 =
       List.find_mapi low_list ~f:(fun ind c ->
-          let low_price = L1_loader.Type.low (Data_cursor.current c).raw_data in
+          let low_price = L1.Loader.Type.low (Data_cursor.current c).raw_data in
           let ratio =
             if low_price < 0. then
               1.02
@@ -170,7 +170,7 @@ let sell ~buy_c ~buy_price _ctx day_k _week_k _month_k :
                ?end':(List.nth low_list (ind + 1))
                day_c'
                ~f:(fun e ->
-                 L1_loader.Type.low (Data_cursor.current e).raw_data
+                 L1.Loader.Type.low (Data_cursor.current e).raw_data
                  < low_price *. ratio))
             ~f:(fun sellc ->
               logs2 :=

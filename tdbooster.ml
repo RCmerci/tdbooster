@@ -2,8 +2,8 @@ open Core
 
 type elem =
   { code : string
-  ; week_data : L1_filter.Type.Attributed_data.t list
-  ; day_data : L1_filter.Type.Attributed_data.t list
+  ; week_data : L1.Filter.Type.Attributed_data.t list
+  ; day_data : L1.Filter.Type.Attributed_data.t list
   }
 [@@deriving to_yojson]
 
@@ -34,15 +34,15 @@ let stat code day_k _week_k stats =
       | _ -> failwith "")
 
 let filter code day_k week_k zz800_day_k zz800_week_k =
-  let day_attr = L1_filter.Unify.unify code zz800_day_k day_k in
-  let week_attr = L1_filter.Unify.unify code zz800_week_k week_k in
+  let day_attr = L1.Filter.Unify.unify code zz800_day_k day_k in
+  let week_attr = L1.Filter.Unify.unify code zz800_week_k week_k in
   { code; week_data = week_attr; day_data = day_attr }
 
 let marketinfo m =
   let _, _, gc_day_k = Map.find_exn m "GC" in
   let _, _, hg_day_k = Map.find_exn m "HG" in
   let _, _, cl_day_k = Map.find_exn m "CL" in
-  let info = L1_filter.Unify.marketinfo hg_day_k gc_day_k cl_day_k in
+  let info = L1.Filter.Unify.marketinfo hg_day_k gc_day_k cl_day_k in
   [ { title = "GC"; data = info.gc }
   ; { title = "HG"; data = info.hg }
   ; { title = "CL"; data = info.cl }
@@ -69,12 +69,12 @@ let refresh_data_aux codes output_dir =
           | "GC"
           | "HG"
           | "CL" ->
-            L1_loader.From_sina.Futures.get_futrues_data
+            L1.Loader.From_sina.Futures.get_futrues_data
           | _ ->
             fun ~output_dir ~code ->
-              L1_loader.From_baostock.run_py_script ~code ~output_dir
+              L1.Loader.From_baostock.run_py_script ~code ~output_dir
               >>= fun _ ->
-              L1_loader.From_baostock_ttm.run_py_script ~code ~output_dir
+              L1.Loader.From_baostock_ttm.run_py_script ~code ~output_dir
               >>= fun _ -> Lwt.return_unit
         in
         T.wait throttler () >>= fun _ -> get_data ~code ~output_dir)
@@ -85,7 +85,8 @@ let refresh_data_aux codes output_dir =
 
 let f codes output_dir refresh_data stats backtest =
   let all_codes =
-    List.concat [ codes; L1_loader.Industry.all_codes; Data.Const.common_codes ]
+    List.concat
+      [ codes; L1.Loader.Industry.all_codes; L2.Data.Const.common_codes ]
     |> List.stable_dedup
   in
   if refresh_data then refresh_data_aux all_codes output_dir;
@@ -95,10 +96,10 @@ let f codes output_dir refresh_data stats backtest =
       | "GC"
       | "HG"
       | "CL" ->
-        L1_loader.From_sina.Futures.read_from_file
+        L1.Loader.From_sina.Futures.read_from_file
       | _ ->
         fun ~output_dir ~code ->
-          L1_loader.From_txt.read_from_file
+          L1.Loader.From_txt.read_from_file
             (Filename.concat output_dir code)
             (Filename.concat output_dir (code ^ ".ttm"))
     in
@@ -107,12 +108,12 @@ let f codes output_dir refresh_data stats backtest =
     let week_k =
       Option.value_exn
         ~message:(Printf.sprintf "code: %s" code)
-        (L1_deriving.Unify.unify_week rawdata)
+        (L1.Deriving.Unify.unify_week rawdata)
     in
     let day_k =
       Option.value_exn
         ~message:(Printf.sprintf "code: %s" code)
-        (L1_deriving.Unify.unify_day rawdata)
+        (L1.Deriving.Unify.unify_day rawdata)
     in
     (code, (day_k, week_k, raw_day_k))
   in
@@ -132,7 +133,7 @@ let f codes output_dir refresh_data stats backtest =
     if List.length backtest > 0 then
       Yojson.Safe.from_string "{\"backtest\": true}"
     else if List.length stats = 0 then
-      let zz800_day_k, zz800_week_k, _ = Map.find_exn m Data.Const.zz800 in
+      let zz800_day_k, zz800_week_k, _ = Map.find_exn m L2.Data.Const.zz800 in
       let data =
         Map.mapi selected_m ~f:(fun ~key:code ~data:(day_k, week_k, _) ->
             try filter code day_k week_k zz800_day_k zz800_week_k
@@ -141,7 +142,7 @@ let f codes output_dir refresh_data stats backtest =
         |> Map.data
       in
       let marketinfo = marketinfo m in
-      let industry_trend = L1_filter.Unify.industry_trend m in
+      let industry_trend = L1.Filter.Unify.industry_trend m in
       output_to_yojson { data; marketinfo; industry_trend }
     else
       let data =

@@ -27,7 +27,7 @@ type day_to_sell_ctx = month_to_week_ctx
  *   return (Buy (c, None, month_ctx))
  *
  * let day_k_buy c _ctx _week_ctx : (ctx, day_to_sell_ctx) buy_action Log_warning.LogAndWarnWriter.m =
- *   return (Buy (c, Some (L1_loader.Type.close (Data_cursor.current c).raw_data), ()))
+ *   return (Buy (c, Some (L1.Loader.Type.close (Data_cursor.current c).raw_data), ()))
  *
  *
  * let sell = Long_term.sell *)
@@ -48,7 +48,7 @@ let day_k_buy c _ctx _week_ctx :
     (ctx, day_to_sell_ctx) buy_action Log_warning.LogAndWarnWriter.m =
   log (Printf.sprintf "[%s] buy" (Data_cursor.datestring c)) >>= fun _ ->
   return
-    (Buy (c, Some (L1_loader.Type.close (Data_cursor.current c).raw_data), ()))
+    (Buy (c, Some (L1.Loader.Type.close (Data_cursor.current c).raw_data), ()))
 
 let rec sell_aux next_c week_c :
     (Data_cursor.t * float) option Log_warning.LogAndWarnWriter.m =
@@ -59,7 +59,7 @@ let rec sell_aux next_c week_c :
     logf "[%s] status_combine_2" (Data_cursor.datestring week_c') >>= fun _ ->
     return
       (Some
-         (week_c', L1_loader.Type.close (Data_cursor.current week_c').raw_data))
+         (week_c', L1.Loader.Type.close (Data_cursor.current week_c').raw_data))
   else
     let next_c', n = Data_cursor.move week_c' 1 in
     if n = 0 then

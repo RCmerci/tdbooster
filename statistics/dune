@@ -1,6 +1,6 @@
 (library
  (inline_tests)
  (name statistics)
- (libraries core l1_deriving ppx_deriving_yojson.runtime l1_loader)
+ (libraries core ppx_deriving_yojson.runtime l1)
  (preprocess
   (pps ppx_inline_test ppx_deriving.show ppx_here ppx_deriving_yojson)))
