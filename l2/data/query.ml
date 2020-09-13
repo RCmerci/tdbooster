@@ -186,4 +186,37 @@ module IndustryTrendData = struct
   let create ?db ~config_dir =
     let db' = Option.value db ~default:(Store.db_open ~config_dir) in
     { db = db' }
+
+  let build_select ?selector industry dwm =
+    let where =
+      Option.value_map selector ~default:"" ~f:Selector.to_where_clause
+    in
+    Printf.sprintf "SELECT * FROM %s %s;"
+      (Store.IndustryTrendData.tablename ~dwm industry)
+      where
+
+  let prepare_select db ?selector industry dwm =
+    build_select ?selector industry dwm |> Sqlite3.prepare db
+
+  let of_row (r : Sqlite3.Data.t array) : Type.industry_trend_data_elem option =
+    let open Option.Monad_infix in
+    let open Sqlite3.Data in
+    to_string r.(0) >>= fun date' ->
+    to_float r.(1) >>= fun above_ma20_percent ->
+    let date = Date.of_string date' in
+    Some ({ date; above_ma20_percent } : Type.industry_trend_data_elem)
+
+  let query t ~industries ~dwm ~selector : Type.industry_trend_data_map =
+    let f () =
+      List.map industries ~f:(fun industry ->
+          let rc, elem_list =
+            Sqlite3.fold (prepare_select t.db ~selector industry dwm) ~init:[]
+              ~f:(fun r row ->
+                Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
+          in
+          Sqlite3.Rc.check rc;
+          (industry, Array.of_list elem_list))
+    in
+    Store.wrap_txn t.db f
+    |> Map.of_alist_reduce (module String) ~f:(fun b _ -> b)
 end
