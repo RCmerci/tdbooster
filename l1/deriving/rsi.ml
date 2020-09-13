@@ -40,19 +40,19 @@ let rsi_all_days n (closing_data_list : float list) : float list =
 
 let%test "test-rsi" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in
-  let closing_data_list = Loader.Type.close_col datal in
+  let closing_data_list = L1_loader.Type.close_col datal in
   let rsi6_all = rsi_all_days 6 closing_data_list in
   60.763000 = Float.round_decimal (List.last_exn rsi6_all) ~decimal_digits:3
 
-let rsi n (data_list : Loader.Type.raw_data) : (Date.t * float) list =
+let rsi n (data_list : L1_loader.Type.raw_data) : (Date.t * float) list =
   match
     List.zip
-      (Loader.Type.date_col data_list)
-      (rsi_all_days n (Loader.Type.close_col data_list))
+      (L1_loader.Type.date_col data_list)
+      (rsi_all_days n (L1_loader.Type.close_col data_list))
   with
   | List.Or_unequal_lengths.Ok v -> v
   | List.Or_unequal_lengths.Unequal_lengths ->

@@ -17,20 +17,20 @@ let%test "test-ma" =
 
 let%test "test-ma2" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in
-  let closing_data_list = Loader.Type.close_col datal in
+  let closing_data_list = L1_loader.Type.close_col datal in
   let ma60_all = ma_all_days 60 closing_data_list in
   List.length ma60_all = List.length datal
   && int_of_float (List.nth_exn ma60_all 4000) = 692
 
-let ma n (data_list : Loader.Type.raw_data) : (Date.t * float) list =
+let ma n (data_list : L1_loader.Type.raw_data) : (Date.t * float) list =
   match
     List.zip
-      (Loader.Type.date_col data_list)
-      (ma_all_days n (Loader.Type.close_col data_list))
+      (L1_loader.Type.date_col data_list)
+      (ma_all_days n (L1_loader.Type.close_col data_list))
   with
   | List.Or_unequal_lengths.Ok v -> v
   | List.Or_unequal_lengths.Unequal_lengths ->

@@ -48,8 +48,8 @@ let k_high_point (c : Data_cursor.t) n :
     let high_c_data = Data_cursor.current high_c in
     let high_c' =
       if
-        Loader.Type.high current.raw_data
-        > Loader.Type.high high_c_data.raw_data
+        L1_loader.Type.high current.raw_data
+        > L1_loader.Type.high high_c_data.raw_data
       then
         c
       else
@@ -130,8 +130,8 @@ let ascending_week_k_high_point_list start end' =
         ~init:(h, [ h ])
         ~f:(fun (last_high, r) e ->
           if
-            Loader.Type.high (Data_cursor.current e).raw_data
-            > Loader.Type.high (Data_cursor.current last_high).raw_data
+            L1_loader.Type.high (Data_cursor.current e).raw_data
+            > L1_loader.Type.high (Data_cursor.current last_high).raw_data
           then
             (e, e :: r)
           else
@@ -147,8 +147,8 @@ let week_k_low_point start end' =
       | None -> Some e
       | Some low ->
         if
-          Loader.Type.low (Data_cursor.current e).raw_data
-          < Loader.Type.low (Data_cursor.current low).raw_data
+          L1_loader.Type.low (Data_cursor.current e).raw_data
+          < L1_loader.Type.low (Data_cursor.current low).raw_data
         then
           Some e
         else
@@ -168,15 +168,15 @@ let week_k_low_point_list ?(f = week_k_high_point_list) start end' =
 let%test_module _ =
   ( module struct
     let datal =
-      Loader.From_txt.read_from_string_lines
+      L1_loader.From_txt.read_from_string_lines
         (String.split_lines Testdata.Data.data)
         []
 
-    let month_k = Option.value_exn (Deriving.Unify.unify_month datal)
+    let month_k = Option.value_exn (L1_deriving.Unify.unify_month datal)
 
-    let week_k = Option.value_exn (Deriving.Unify.unify_week datal)
+    let week_k = Option.value_exn (L1_deriving.Unify.unify_week datal)
 
-    let day_k = Option.value_exn (Deriving.Unify.unify_day datal)
+    let day_k = Option.value_exn (L1_deriving.Unify.unify_day datal)
 
     let%test "test-just_enter_status_A" =
       let c = Data_cursor.create_exn month_k in
@@ -226,7 +226,7 @@ let%test_module _ =
             ((Data_cursor.current a).date |> Date.to_string)
             ^ ":"
             ^ string_of_float
-                (Loader.Type.high (Data_cursor.current a).raw_data))
+                (L1_loader.Type.high (Data_cursor.current a).raw_data))
           high_list
 
     let%test "test-week_k_low_point_list" =
@@ -243,6 +243,7 @@ let%test_module _ =
           ~f:(fun a ->
             ((Data_cursor.current a).date |> Date.to_string)
             ^ ":"
-            ^ string_of_float (Loader.Type.low (Data_cursor.current a).raw_data))
+            ^ string_of_float
+                (L1_loader.Type.low (Data_cursor.current a).raw_data))
           low_list
   end )

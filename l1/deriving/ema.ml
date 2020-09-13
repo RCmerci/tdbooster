@@ -24,21 +24,21 @@ let ema_all_days n (closing_data_list : float list) : float list =
 
 let%test "test-ema_all" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in
-  let closing_data_list = Loader.Type.close_col datal in
+  let closing_data_list = L1_loader.Type.close_col datal in
   let ema60_all = ema_all_days 60 closing_data_list in
   List.length ema60_all = List.length datal
   && int_of_float (List.nth_exn ema60_all 4000) = 705
   && int_of_float (List.nth_exn ema60_all 3000) = 86
 
-let ema n (data_list : Loader.Type.raw_data) : (Date.t * float) list =
+let ema n (data_list : L1_loader.Type.raw_data) : (Date.t * float) list =
   match
     List.zip
-      (Loader.Type.date_col data_list)
-      (ema_all_days n (Loader.Type.close_col data_list))
+      (L1_loader.Type.date_col data_list)
+      (ema_all_days n (L1_loader.Type.close_col data_list))
   with
   | List.Or_unequal_lengths.Ok v -> v
   | List.Or_unequal_lengths.Unequal_lengths ->
@@ -47,7 +47,7 @@ let ema n (data_list : Loader.Type.raw_data) : (Date.t * float) list =
 
 let%test "test-ema" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in

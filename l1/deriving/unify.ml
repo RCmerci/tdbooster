@@ -1,7 +1,8 @@
 open Core
 open Option.Monad_infix
 
-let unify (data_list : Loader.Type.raw_data) : Type.Derived_data.t list option =
+let unify (data_list : L1_loader.Type.raw_data) :
+    Type.Derived_data.t list option =
   let datelist, ema12 = Ema.ema 12 data_list |> List.unzip in
   let _, ema20 = Ema.ema 20 data_list |> List.unzip in
   let _, ema26 = Ema.ema 26 data_list |> List.unzip in
@@ -86,8 +87,8 @@ let unify (data_list : Loader.Type.raw_data) : Type.Derived_data.t list option =
 
 let unify_day = unify
 
-let unify_week (data_list : Loader.Type.raw_data) =
+let unify_week (data_list : L1_loader.Type.raw_data) =
   unify (Week_k.week_k data_list)
 
-let unify_month (data_list : Loader.Type.raw_data) =
+let unify_month (data_list : L1_loader.Type.raw_data) =
   unify (Month_k.month_k data_list)

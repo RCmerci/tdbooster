@@ -31,7 +31,7 @@ let macd ~dif_list ~dea_list =
 
 let%test "test-dif-dea-macd" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in
@@ -44,7 +44,7 @@ let%test "test-dif-dea-macd" =
   && int_of_float (List.nth_exn dea_list 4000) = 18
   && int_of_float (List.nth_exn macd_list 4000) = 4
 
-let macd_dif_dea (data_list : Loader.Type.raw_data) :
+let macd_dif_dea (data_list : L1_loader.Type.raw_data) :
     (Date.t * float * float * float) list option =
   let time_list, ema12_list = List.unzip (Ema.ema 12 data_list) in
   let ema26_list = List.map (Ema.ema 26 data_list) ~f:snd in
@@ -72,7 +72,7 @@ let macd_dif_dea (data_list : Loader.Type.raw_data) :
 
 let%test "test-macd_dif_dea" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in

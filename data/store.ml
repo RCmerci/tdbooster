@@ -1,7 +1,7 @@
 open Core
 open Sqlite3
 
-type raw_data_list = Loader.Type.raw_data
+type raw_data_list = L1_loader.Type.raw_data
 
 let db_open ~config_dir =
   Sqlite3.db_open (Filename.concat config_dir "tdbooster.db")
@@ -26,23 +26,24 @@ module ReadCodesBaseData : sig
   val read_all_codes_month_base_data :
     codes_and_raw_data_list -> codes_and_raw_month_data_list
 
-  val unpack : codes_and_raw_data_list -> (string * Loader.Type.raw_data) list
+  val unpack :
+    codes_and_raw_data_list -> (string * L1_loader.Type.raw_data) list
 
-  val pack : (string * Loader.Type.raw_data) list -> codes_and_raw_data_list
+  val pack : (string * L1_loader.Type.raw_data) list -> codes_and_raw_data_list
 
   val unpack_week :
-    codes_and_raw_week_data_list -> (string * Loader.Type.raw_data) list
+    codes_and_raw_week_data_list -> (string * L1_loader.Type.raw_data) list
 
   val pack_week :
-    (string * Loader.Type.raw_data) list -> codes_and_raw_week_data_list
+    (string * L1_loader.Type.raw_data) list -> codes_and_raw_week_data_list
 
   val unpack_month :
-    codes_and_raw_month_data_list -> (string * Loader.Type.raw_data) list
+    codes_and_raw_month_data_list -> (string * L1_loader.Type.raw_data) list
 
   val pack_month :
-    (string * Loader.Type.raw_data) list -> codes_and_raw_month_data_list
+    (string * L1_loader.Type.raw_data) list -> codes_and_raw_month_data_list
 end = struct
-  type codes_and_raw_data_list = (string * Loader.Type.raw_data) list
+  type codes_and_raw_data_list = (string * L1_loader.Type.raw_data) list
 
   type codes_and_raw_week_data_list = codes_and_raw_data_list
 
@@ -66,19 +67,20 @@ end = struct
         Tuple2.create code
           ( match code with
           | c when List.mem Const.[ cl; gc; hg ] c ~equal:String.( = ) ->
-            Loader.From_sina.Futures.read_from_file ~output_dir:config_dir ~code
+            L1_loader.From_sina.Futures.read_from_file ~output_dir:config_dir
+              ~code
           | _ ->
-            Loader.From_txt.read_from_file
+            L1_loader.From_txt.read_from_file
               (Filename.concat config_dir code)
               (Filename.concat config_dir (code ^ ".ttm")) ))
 
   let read_all_codes_week_base_data codes_and_raw_data_list =
     List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-        (code, Deriving.Week_k.week_k raw_data_list))
+        (code, L1_deriving.Week_k.week_k raw_data_list))
 
   let read_all_codes_month_base_data codes_and_raw_data_list =
     List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
-        (code, Deriving.Month_k.month_k raw_data_list))
+        (code, L1_deriving.Month_k.month_k raw_data_list))
 end
 
 let dwm_to_string dwm =
@@ -123,7 +125,7 @@ module BaseData = struct
   let to_db db ~dwm code raw_data_list =
     let insert_stmt = prepare db (insert_sql ~dwm code) in
     let f () =
-      List.iter raw_data_list ~f:(fun (e : Loader.Type.raw_data_elem) ->
+      List.iter raw_data_list ~f:(fun (e : L1_loader.Type.raw_data_elem) ->
           reset insert_stmt |> Rc.check;
           bind insert_stmt 1 (Sqlite3.Data.TEXT (Date.to_string e.date))
           |> Rc.check;
@@ -162,18 +164,19 @@ module BaseData = struct
 
   let to_day_base_data raw_data_list = raw_data_list
 
-  let to_week_base_data raw_data_list = Deriving.Week_k.week_k raw_data_list
+  let to_week_base_data raw_data_list = L1_deriving.Week_k.week_k raw_data_list
 
-  let to_month_base_data raw_data_list = Deriving.Month_k.month_k raw_data_list
+  let to_month_base_data raw_data_list =
+    L1_deriving.Month_k.month_k raw_data_list
 
   let to_day_derived_data raw_data_list =
-    Option.value (Deriving.Unify.unify_day raw_data_list) ~default:[]
+    Option.value (L1_deriving.Unify.unify_day raw_data_list) ~default:[]
 
   let to_week_derived_data raw_data_list =
-    Option.value (Deriving.Unify.unify_week raw_data_list) ~default:[]
+    Option.value (L1_deriving.Unify.unify_week raw_data_list) ~default:[]
 
   let to_month_derived_data raw_data_list =
-    Option.value (Deriving.Unify.unify_month raw_data_list) ~default:[]
+    Option.value (L1_deriving.Unify.unify_month raw_data_list) ~default:[]
 end
 
 module DerivedData = struct
@@ -206,8 +209,8 @@ module DerivedData = struct
        macd, bias24, rsi6, rsi12, rsi24, kdj933_1, kdj933_2, kdj933_3)"
     ^ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-  let to_db db ~dwm code (derived_data_list : Deriving.Type.Derived_data.t list)
-      =
+  let to_db db ~dwm code
+      (derived_data_list : L1_deriving.Type.Derived_data.t list) =
     let insert_stmt = prepare db (insert_sql ~dwm code) in
     let f () =
       List.iter derived_data_list ~f:(fun e ->
@@ -272,7 +275,7 @@ module DerivedData = struct
       List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
           (code, BaseData.to_day_derived_data raw_data_list))
     in
-    let module C = L1.Cursor.Data_cursor in
+    let module C = L1_cursor.Data_cursor in
     Map.of_alist_reduce
       (module String)
       codes_and_derived_data_list
@@ -326,8 +329,8 @@ module IndustryTrendData = struct
   let store_day_data db codes_and_raw_data_list =
     let cm = DerivedData.to_cursormap codes_and_raw_data_list in
     let industry_and_data_list =
-      Filter.Industry_trend.above_ma20_trend
-        ~auxf:Filter.Industry_trend.above_ma20_trend_all_aux cm
+      L1_filter.Industry_trend.above_ma20_trend
+        ~auxf:L1_filter.Industry_trend.above_ma20_trend_all_aux cm
     in
     store db ~dwm:`DAY industry_and_data_list
 
@@ -338,8 +341,8 @@ module IndustryTrendData = struct
     in
     let cm = DerivedData.to_cursormap (pack codes_and_raw_week_data_list) in
     let industry_and_data_list =
-      Filter.Industry_trend.above_ma20_trend
-        ~auxf:Filter.Industry_trend.above_ma20_trend_all_aux cm
+      L1_filter.Industry_trend.above_ma20_trend
+        ~auxf:L1_filter.Industry_trend.above_ma20_trend_all_aux cm
     in
     store db ~dwm:`WEEK industry_and_data_list
 
@@ -350,8 +353,8 @@ module IndustryTrendData = struct
     in
     let cm = DerivedData.to_cursormap (pack codes_and_raw_month_data_list) in
     let industry_and_data_list =
-      Filter.Industry_trend.above_ma20_trend
-        ~auxf:Filter.Industry_trend.above_ma20_trend_all_aux cm
+      L1_filter.Industry_trend.above_ma20_trend
+        ~auxf:L1_filter.Industry_trend.above_ma20_trend_all_aux cm
     in
     store db ~dwm:`MONTH industry_and_data_list
 end

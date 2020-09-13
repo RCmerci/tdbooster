@@ -2,17 +2,17 @@ open Core
 open Poly
 open Option.Monad_infix
 
-let month_k (data_list : Loader.Type.raw_data) : Loader.Type.raw_data =
+let month_k (data_list : L1_loader.Type.raw_data) : L1_loader.Type.raw_data =
   List.fold data_list ~init:(None, None, [])
-    ~f:(fun (last_month, (month_data : Loader.Type.raw_data_elem option), r)
+    ~f:(fun (last_month, (month_data : L1_loader.Type.raw_data_elem option), r)
             current
             ->
-      let month = Date.month (Loader.Type.date current) in
+      let month = Date.month (L1_loader.Type.date current) in
       match last_month with
       | None ->
         ( Some month
         , Some
-            Loader.Type.
+            L1_loader.Type.
               { date = current.date
               ; opening = current.opening
               ; high = current.high
@@ -26,7 +26,7 @@ let month_k (data_list : Loader.Type.raw_data) : Loader.Type.raw_data =
       | Some last_m when Month.(month <> last_m) ->
         let percent_change =
           match r with
-          | Some (last_month_data : Loader.Type.raw_data_elem) :: _ ->
+          | Some (last_month_data : L1_loader.Type.raw_data_elem) :: _ ->
             (current.close -. last_month_data.close) /. last_month_data.close
           | _ -> 0.
         in
@@ -76,16 +76,16 @@ let month_k (data_list : Loader.Type.raw_data) : Loader.Type.raw_data =
 
 let%test "test-month_k" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in
   let month_data_list = month_k datal in
-  List.for_all (Loader.Type.days_col month_data_list) ~f:(fun e -> e < 30)
+  List.for_all (L1_loader.Type.days_col month_data_list) ~f:(fun e -> e < 30)
 
 let%test "test-month_k_percent_change" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in

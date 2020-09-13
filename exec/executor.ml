@@ -83,9 +83,9 @@ module Make (St : Strategy.Type.Strategy) = struct
     }
 
   let create raw_data =
-    Deriving.Unify.unify_month raw_data >>= fun month_k_data ->
-    Deriving.Unify.unify_week raw_data >>= fun week_k_data ->
-    Deriving.Unify.unify_day raw_data >>= fun day_k_data ->
+    L1_deriving.Unify.unify_month raw_data >>= fun month_k_data ->
+    L1_deriving.Unify.unify_week raw_data >>= fun week_k_data ->
+    L1_deriving.Unify.unify_day raw_data >>= fun day_k_data ->
     Data_cursor.create month_k_data >>= fun month_k ->
     Data_cursor.create week_k_data >>= fun week_k ->
     Data_cursor.create day_k_data >>= fun day_k ->

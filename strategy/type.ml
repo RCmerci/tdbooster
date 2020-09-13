@@ -37,9 +37,9 @@ module type Strategy = sig
        buy_c:Data_cursor.t
     -> buy_price:float
     -> day_to_sell_ctx
-    -> Deriving.Type.Derived_data.t list (* day_k *)
-    -> Deriving.Type.Derived_data.t list (* week_k *)
-    -> Deriving.Type.Derived_data.t list (* month_k *)
+    -> L1_deriving.Type.Derived_data.t list (* day_k *)
+    -> L1_deriving.Type.Derived_data.t list (* week_k *)
+    -> L1_deriving.Type.Derived_data.t list (* month_k *)
     -> (* sell_c, sell_price *)
        (Data_cursor.t * float) option Log_warning.LogAndWarnWriter.m
 end

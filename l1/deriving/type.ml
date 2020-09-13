@@ -3,7 +3,7 @@ open Core
 module Derived_data = struct
   type t =
     { date : Date.t
-    ; raw_data : Loader.Type.raw_data_elem [@opaque]
+    ; raw_data : L1_loader.Type.raw_data_elem [@opaque]
     ; ma20 : float
     ; ma60 : float
     ; ma120 : float

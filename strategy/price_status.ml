@@ -103,14 +103,14 @@ let status5 ?(ratio = 2.) open' close high low =
      *)[@ocamlformat "disable"]
 
 let status_combine_1 c =
-  let open Loader.Type in
+  let open L1_loader.Type in
   let l = Cursor.Data_cursor.left c 4 @ [ Cursor.Data_cursor.current c ] in
   let fst4 = List.sub l ~pos:0 ~len:4 in
   let is_down_head =
     List.fold_until fst4 ~init:99999.
       ~f:(fun r e ->
-        if Loader.Type.close e.raw_data < r then
-          Continue_or_stop.Continue (Loader.Type.close e.raw_data)
+        if L1_loader.Type.close e.raw_data < r then
+          Continue_or_stop.Continue (L1_loader.Type.close e.raw_data)
         else
           Continue_or_stop.Stop false)
       ~finish:(fun _ -> true)
@@ -150,7 +150,7 @@ let status_combine_2 c =
   else
     let k1' = Cursor.Data_cursor.current k1 in
     let k2' = Cursor.Data_cursor.current k2 in
-    let open Loader.Type in
+    let open L1_loader.Type in
     let diff1 =
       (close k1'.raw_data -. close k2'.raw_data) /. close k2'.raw_data
     in
@@ -174,7 +174,7 @@ let%test "test-status5" = status5 12.1 10. 13. 9.
 
 let%test_module _ =
   ( module struct
-    let a1 : Deriving.Type.Derived_data.t =
+    let a1 : L1_deriving.Type.Derived_data.t =
       { date = Date.of_string "2012-01-01"
       ; (* [|"date";"open";"high";"low";"close";"ttm";"days"|] *)
         raw_data =

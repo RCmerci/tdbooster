@@ -272,5 +272,5 @@ let%test "test-cursor-sub" =
   && fst (List.unzip r3)
      = List.map [ "2012-12-02"; "2012-12-04"; "2012-12-05" ] ~f:Date.of_string
 
-module Data_cursor = Make (Deriving.Type.Derived_data)
-module RawData_cursor = Make (Loader.Type.RawData)
+module Data_cursor = Make (L1_deriving.Type.Derived_data)
+module RawData_cursor = Make (L1_loader.Type.RawData)

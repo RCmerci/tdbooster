@@ -1,6 +1,6 @@
 (library
  (inline_tests)
- (name l1)
- (libraries core loader deriving score)
+ (name l1_cursor)
+ (libraries core l1_loader l1_deriving score)
  (preprocess
   (pps ppx_inline_test)))

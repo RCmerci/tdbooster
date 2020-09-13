@@ -16,19 +16,19 @@ let bias_all_days n (closing_data_list : float list) : float list =
 
 let%test "test-bias" =
   let datal =
-    Loader.From_txt.read_from_string_lines
+    L1_loader.From_txt.read_from_string_lines
       (String.split_lines Testdata.Data.data)
       []
   in
-  let closing_data_list = Loader.Type.close_col datal in
+  let closing_data_list = L1_loader.Type.close_col datal in
   let bias24_all = bias_all_days 24 closing_data_list in
   0.04523 = Float.round_decimal ~decimal_digits:5 (List.nth_exn bias24_all 4000)
 
-let bias n (data_list : Loader.Type.raw_data) : (Date.t * float) list =
+let bias n (data_list : L1_loader.Type.raw_data) : (Date.t * float) list =
   match
     List.zip
-      (Loader.Type.date_col data_list)
-      (bias_all_days n (Loader.Type.close_col data_list))
+      (L1_loader.Type.date_col data_list)
+      (bias_all_days n (L1_loader.Type.close_col data_list))
   with
   | List.Or_unequal_lengths.Ok v -> v
   | List.Or_unequal_lengths.Unequal_lengths ->

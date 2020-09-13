@@ -1,9 +1,9 @@
 open Core
 open Poly
-module C = L1.Cursor.Data_cursor
+module C = L1_cursor.Data_cursor
 
-let unify code (zz800 : Deriving.Type.Derived_data.t list)
-    (deriving_data : Deriving.Type.Derived_data.t list) :
+let unify code (zz800 : L1_deriving.Type.Derived_data.t list)
+    (deriving_data : L1_deriving.Type.Derived_data.t list) :
     Type.Attributed_data.t list =
   let three_month_ago =
     Date.add_months (List.last_exn deriving_data).date (-3)
@@ -24,10 +24,10 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
   let price_before_120 = Ma_ema.price_before_120 c' in
   let industry = Industry.get_industry code in
   let attr_data =
-    List.map2 (Deriving.Op.sub_by_startdate deriving_data three_month_ago)
-      (Deriving.Op.sub_by_startdate zz800 three_month_ago) ~f:(fun e zz800 ->
+    List.map2 (L1_deriving.Op.sub_by_startdate deriving_data three_month_ago)
+      (L1_deriving.Op.sub_by_startdate zz800 three_month_ago) ~f:(fun e zz800 ->
         ( assert (Date.equal e.date zz800.date);
-          assert (Loader.Type.percent_change e.raw_data < 1.);
+          assert (L1_loader.Type.percent_change e.raw_data < 1.);
           { date = e.date
           ; industry
           ; rsi_golden_cross = Set.mem golden_cross_points' e.date
@@ -37,8 +37,8 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
           ; ma_arranged
           ; price_less_ma20
           ; relative_strength =
-              ( Loader.Type.percent_change e.raw_data
-              -. Loader.Type.percent_change zz800.raw_data )
+              ( L1_loader.Type.percent_change e.raw_data
+              -. L1_loader.Type.percent_change zz800.raw_data )
               *. 100.
           ; price_before_20
           ; price_before_60
@@ -50,10 +50,10 @@ let unify code (zz800 : Deriving.Type.Derived_data.t list)
   | List.Or_unequal_lengths.Ok v -> v
   | List.Or_unequal_lengths.Unequal_lengths -> failwith "unequal length of data"
 
-let marketinfo (hg : Loader.Type.RawData.t list)
-    (gc : Loader.Type.RawData.t list) (cl : Loader.Type.RawData.t list) :
+let marketinfo (hg : L1_loader.Type.RawData.t list)
+    (gc : L1_loader.Type.RawData.t list) (cl : L1_loader.Type.RawData.t list) :
     Type.Market_data.t =
-  let module C = L1.Cursor.RawData_cursor in
+  let module C = L1_cursor.RawData_cursor in
   let gc_c' = C.create_exn gc in
   let gc_c = C.move_to_last gc_c' in
   let hg_c' = C.create_exn hg in
@@ -61,15 +61,15 @@ let marketinfo (hg : Loader.Type.RawData.t list)
   let cl_c' = C.create_exn cl in
   let cl_c = C.move_to_last cl_c' in
   let gc_data =
-    Data_array.data_point_Nday gc_c 120 Loader.Type.close
+    Data_array.data_point_Nday gc_c 120 L1_loader.Type.close
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let hg_data =
-    Data_array.data_point_Nday hg_c 120 Loader.Type.close
+    Data_array.data_point_Nday hg_c 120 L1_loader.Type.close
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let cl_data =
-    Data_array.data_point_Nday cl_c 120 Loader.Type.close
+    Data_array.data_point_Nday cl_c 120 L1_loader.Type.close
     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
   in
   let hg_div_gc =
@@ -84,9 +84,9 @@ let marketinfo (hg : Loader.Type.RawData.t list)
 
 type datamap =
   ( string
-  , Deriving.Type.Derived_data.t list
-    * Deriving.Type.Derived_data.t list
-    * Loader.Type.raw_data
+  , L1_deriving.Type.Derived_data.t list
+    * L1_deriving.Type.Derived_data.t list
+    * L1_loader.Type.raw_data
   , String.comparator_witness )
   Map.t
 

@@ -1,7 +1,7 @@
 open Core
 open Poly
 
-let diff (deriving_data : Deriving.Type.Derived_data.t list) =
+let diff (deriving_data : L1_deriving.Type.Derived_data.t list) =
   List.map deriving_data ~f:(fun e -> (e.rsi24 -. e.rsi12, e.rsi12 -. e.rsi6))
 
 let golden_cross_points diff_list =
@@ -45,21 +45,29 @@ let%test "golden_cross_points" =
   in
   l = [ 6 ]
 
-let low_rsi6 n (deriving_data : Deriving.Type.Derived_data.t list) =
+let low_rsi6 n (deriving_data : L1_deriving.Type.Derived_data.t list) =
   let open List in
   List.filter deriving_data ~f:(fun e -> e.rsi6 < n) >>= fun e -> return e.date
 
-let low_rsi6_20 start_date (deriving_data : Deriving.Type.Derived_data.t list) =
-  let deriving_data' = Deriving.Op.sub_by_startdate deriving_data start_date in
+let low_rsi6_20 start_date
+    (deriving_data : L1_deriving.Type.Derived_data.t list) =
+  let deriving_data' =
+    L1_deriving.Op.sub_by_startdate deriving_data start_date
+  in
   low_rsi6 20. deriving_data'
 
-let low_rsi6_30 start_date (deriving_data : Deriving.Type.Derived_data.t list) =
-  let deriving_data' = Deriving.Op.sub_by_startdate deriving_data start_date in
+let low_rsi6_30 start_date
+    (deriving_data : L1_deriving.Type.Derived_data.t list) =
+  let deriving_data' =
+    L1_deriving.Op.sub_by_startdate deriving_data start_date
+  in
   low_rsi6 30. deriving_data'
 
-let golden_cross start_date (deriving_data : Deriving.Type.Derived_data.t list)
-    =
-  let deriving_data' = Deriving.Op.sub_by_startdate deriving_data start_date in
+let golden_cross start_date
+    (deriving_data : L1_deriving.Type.Derived_data.t list) =
+  let deriving_data' =
+    L1_deriving.Op.sub_by_startdate deriving_data start_date
+  in
   let diff_list = diff deriving_data' in
   let points = golden_cross_points diff_list in
   List.map points ~f:(fun e ->

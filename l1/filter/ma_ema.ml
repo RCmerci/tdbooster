@@ -1,6 +1,6 @@
 open Core
 open Poly
-module C = L1.Cursor.Data_cursor
+module C = L1_cursor.Data_cursor
 
 (* ma20, ma60, ma120 最近3点为上升趋势 *)
 let ma_up (c : C.t) : bool =
@@ -22,13 +22,13 @@ let ma_arrangement (c : C.t) : bool =
 (* price < ma20 *)
 let price_lessthan_ma20 (c : C.t) : bool =
   let data = C.current c in
-  Loader.Type.close data.raw_data < data.ma20
+  L1_loader.Type.close data.raw_data < data.ma20
 
 let price_before_N (c : C.t) n : float * string =
   let c', _ = C.move c (-n) in
   let data = C.current c' in
   let datestring = C.datestring c' in
-  (Loader.Type.close data.raw_data, datestring)
+  (L1_loader.Type.close data.raw_data, datestring)
 
 (* 20 天/周 之前的价格/时间 *)
 let price_before_20 c = price_before_N c 20

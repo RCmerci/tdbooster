@@ -1,11 +1,11 @@
 open Core
 open Poly
-module C = L1.Cursor.Data_cursor
+module C = L1_cursor.Data_cursor
 
 type cursorMap = (String.t, C.t, String.comparator_witness) Map.t
 
 let above_ma20_trend_aux_120day (cm : cursorMap)
-    (e : Loader.Type.IndustryList.one) =
+    (e : L1_loader.Type.IndustryList.one) =
   let open Option.Monad_infix in
   let l =
     List.map e.codes ~f:(fun code ->
@@ -17,7 +17,7 @@ let above_ma20_trend_aux_120day (cm : cursorMap)
         else
           Some
             (List.map datalist ~f:(fun e ->
-                 if Loader.Type.close e.raw_data > e.ma20 then
+                 if L1_loader.Type.close e.raw_data > e.ma20 then
                    (e.date, 1)
                  else
                    (e.date, 0))))
@@ -39,7 +39,7 @@ let above_ma20_trend_aux_120day (cm : cursorMap)
 
 let above_ma20_trend ?(auxf = above_ma20_trend_aux_120day) (cm : cursorMap) =
   let r =
-    List.map Loader.Industry.get_industry_list ~f:(fun e ->
+    List.map L1_loader.Industry.get_industry_list ~f:(fun e ->
         (e.category, auxf cm e))
   in
   let sum_table = Hashtbl.create (module Date) in
@@ -58,8 +58,8 @@ let above_ma20_trend ?(auxf = above_ma20_trend_aux_120day) (cm : cursorMap) =
   in
   ("sum", sum_alist) :: r
 
-let above_ma20_trend_all_aux (cm : cursorMap) (e : Loader.Type.IndustryList.one)
-    =
+let above_ma20_trend_all_aux (cm : cursorMap)
+    (e : L1_loader.Type.IndustryList.one) =
   let sub_cm =
     List.fold e.codes
       ~init:(Map.empty (module String))

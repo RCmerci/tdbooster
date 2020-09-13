@@ -1,11 +1,11 @@
 open Core
 
 let industry_cat_list =
-  List.map Loader.Industry.get_industry_list ~f:(fun e -> e.category)
+  List.map L1_loader.Industry.get_industry_list ~f:(fun e -> e.category)
 
-let industry_code_list = Loader.Industry.all_codes
+let industry_code_list = L1_loader.Industry.all_codes
 
-let industry_list = Loader.Industry.get_industry_list
+let industry_list = L1_loader.Industry.get_industry_list
 
 let zz800 = "sh.000906"
 

@@ -1,5 +1,5 @@
 (executable
  (name        tdbooster)
  (public_name tdbooster)
- (libraries   core data loader deriving strategy exec filter ppx_deriving_yojson.runtime statistics score l1)
+ (libraries   core data strategy exec ppx_deriving_yojson.runtime statistics score l1_loader)
  (preprocess (pps ppx_jane ppx_deriving_yojson)))
