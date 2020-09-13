@@ -95,5 +95,28 @@ let above_ma20_trend_all_aux (cm : cursorMap)
          , Score.create ~min:0. ~max:1. (float_of_int count /. float_of_int sum)
          ))
 
-(* TODO: add test: 比较 'above_ma20_trend_all_aux' 和 'above_ma20_trend_aux_120day'
-   最后 120day 数据相同 *)
+let%test "test-compare_above_ma20_trend_all_aux-above_ma20_trend_aux_120day" =
+  let datal =
+    L1_loader.From_txt.read_from_string_lines
+      (String.split_lines Testdata.Data.data)
+      []
+  in
+  let k = Option.value_exn (L1_deriving.Unify.unify datal) in
+  let c = C.create_exn k in
+  let cm = Map.of_alist_exn (module String) [ ("xxxx", c) ] in
+  let r1 =
+    above_ma20_trend_aux_120day cm { category = "xxxx"; codes = [ "xxxx" ] }
+  in
+  let r2 =
+    above_ma20_trend_all_aux cm { category = "xxxx"; codes = [ "xxxx" ] }
+  in
+  List.length r1 = 120
+  && 0
+     = List.compare
+         (fun (d1, v1) (d2, v2) ->
+           if Date.compare d1 d2 = 0 && Score.compare v1 v2 = 0 then
+             0
+           else
+             1)
+         r1
+         (List.sub r2 ~pos:(List.length r2 - 120) ~len:120)

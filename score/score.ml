@@ -26,6 +26,12 @@ let of_float size f = { size; value = f }
 
 let normalize v = (v.value -. v.size.min) /. (v.size.max -. v.size.min) *. 100.
 
+let compare t1 t2 =
+  Float.(
+    compare
+      (round_decimal ~decimal_digits:2 (normalize t1))
+      (round_decimal ~decimal_digits:2 (normalize t2)))
+
 let sum vl =
   { size = { min = 0.; max = Float.of_int (List.length vl * 100) }
   ; value = List.sum (module Float) vl ~f:normalize

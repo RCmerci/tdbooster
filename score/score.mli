@@ -14,4 +14,6 @@ val of_float : size -> float -> t
 
 val normalize : t -> float
 
+val compare : t -> t -> int
+
 val sum : t list -> t
