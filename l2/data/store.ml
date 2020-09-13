@@ -358,5 +358,3 @@ module IndustryTrendData = struct
     in
     store db ~dwm:`MONTH industry_and_data_list
 end
-
-(* TODO: add test for module 'BaseData' 'DerivedData' 'InductiveData' *)

@@ -10,6 +10,7 @@ module Selector = struct
     | BetweenEE of (Date.t * Date.t)
     | BetweenET of (Date.t * Date.t)
     | BetweenTT of (Date.t * Date.t)
+    | ALL
 
   let to_where_clause t =
     "WHERE "
@@ -31,6 +32,7 @@ module Selector = struct
     | BetweenET (d1, d2) ->
       Printf.sprintf "date(date) >= date('%s') and date(date) < date('%s')"
         (Date.to_string d1) (Date.to_string d2)
+    | ALL -> "1=1"
 end
 
 module type DataQuerySig = sig
@@ -93,7 +95,7 @@ module BaseData : DataQuerySig with type r = Type.base_data_map = struct
                 Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
           in
           Sqlite3.Rc.check rc;
-          (code, Array.of_list elem_list))
+          (code, Array.of_list_rev elem_list))
     in
     Store.wrap_txn t.db f
     |> Map.of_alist_reduce (module String) ~f:(fun b1 _ -> b1)
@@ -172,7 +174,7 @@ module DerivedData : DataQuerySig with type r = Type.derived_data_map = struct
                 Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
           in
           Sqlite3.Rc.check rc;
-          (code, Array.of_list elem_list))
+          (code, Array.of_list_rev elem_list))
     in
     Store.wrap_txn t.db f
     |> Map.of_alist_reduce (module String) ~f:(fun b _ -> b)
@@ -215,8 +217,43 @@ module IndustryTrendData = struct
                 Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
           in
           Sqlite3.Rc.check rc;
-          (industry, Array.of_list elem_list))
+          (industry, Array.of_list_rev elem_list))
     in
     Store.wrap_txn t.db f
     |> Map.of_alist_reduce (module String) ~f:(fun b _ -> b)
 end
+
+let%test_module _ =
+  ( module struct
+    let datal =
+      L1.Loader.From_txt.read_from_string_lines
+        (String.split_lines Testdata.Data.data)
+        []
+
+    let codes_and_raw_data_list =
+      [ ("xxxx", datal) ] |> Store.ReadCodesBaseData.pack
+
+    let db = Store.db_open ~config_dir:"."
+
+    let%test "test-basedata_store" =
+      ignore (Store.BaseData.table_drop db ~dwm:`DAY "xxxx");
+      Store.BaseData.store db ~dwm:`DAY codes_and_raw_data_list;
+      let q = BaseData.create ~db ~config_dir:"." in
+      let r =
+        BaseData.query q ~codes:[ "xxxx" ] ~dwm:`DAY ~selector:Selector.ALL
+      in
+      let l = Map.find_exn r "xxxx" |> Array.to_list in
+      List.for_all2_exn
+        ~f:(fun v1 v2 ->
+          if
+            Date.compare v1.date v2.date = 0
+            && Float.compare v1.opening v2.opening = 0
+          then
+            true
+          else (
+            Printf.printf "v1:%s, %f, v2:%s,%f" (Date.to_string v1.date)
+              v1.opening (Date.to_string v2.date) v2.opening;
+            false
+          ))
+        l datal
+  end )
