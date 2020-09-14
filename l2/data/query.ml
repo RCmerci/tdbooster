@@ -10,29 +10,37 @@ module Selector = struct
     | BetweenEE of (Date.t * Date.t)
     | BetweenET of (Date.t * Date.t)
     | BetweenTT of (Date.t * Date.t)
+    | Last of int
     | ALL
 
-  let to_where_clause t =
-    "WHERE "
-    ^
+  let need_reverse t =
     match t with
-    | GE d -> Printf.sprintf "date(date) >= date('%s')" (Date.to_string d)
-    | GT d -> Printf.sprintf "date(date) > date('%s')" (Date.to_string d)
-    | LE d -> Printf.sprintf "date(date) <= date('%s')" (Date.to_string d)
-    | LT d -> Printf.sprintf "date(date) < date('%s')" (Date.to_string d)
+    | Last _ -> true
+    | _ -> false
+
+  let to_cond_clause t =
+    match t with
+    | GE d -> Printf.sprintf "WHERE date(date) >= date('%s')" (Date.to_string d)
+    | GT d -> Printf.sprintf "WHERE date(date) > date('%s')" (Date.to_string d)
+    | LE d -> Printf.sprintf "WHERE date(date) <= date('%s')" (Date.to_string d)
+    | LT d -> Printf.sprintf "WHERE date(date) < date('%s')" (Date.to_string d)
     | BetweenTE (d1, d2) ->
-      Printf.sprintf "date(date) > date('%s') and date(date) <= date('%s')"
+      Printf.sprintf
+        "WHERE date(date) > date('%s') and date(date) <= date('%s')"
         (Date.to_string d1) (Date.to_string d2)
     | BetweenTT (d1, d2) ->
-      Printf.sprintf "date(date) > date('%s') and date(date) < date('%s')"
+      Printf.sprintf "WHERE date(date) > date('%s') and date(date) < date('%s')"
         (Date.to_string d1) (Date.to_string d2)
     | BetweenEE (d1, d2) ->
-      Printf.sprintf "date(date) >= date('%s') and date(date) <= date('%s')"
+      Printf.sprintf
+        "WHERE date(date) >= date('%s') and date(date) <= date('%s')"
         (Date.to_string d1) (Date.to_string d2)
     | BetweenET (d1, d2) ->
-      Printf.sprintf "date(date) >= date('%s') and date(date) < date('%s')"
+      Printf.sprintf
+        "WHERE date(date) >= date('%s') and date(date) < date('%s')"
         (Date.to_string d1) (Date.to_string d2)
-    | ALL -> "1=1"
+    | ALL -> "WHERE 1=1"
+    | Last n -> Printf.sprintf "order by date desc limit %d" n
 end
 
 module type DataQuerySig = sig
@@ -40,7 +48,7 @@ module type DataQuerySig = sig
 
   type r
 
-  val create : ?db:Sqlite3.db -> config_dir:string -> t
+  val create : ?db:Sqlite3.db -> string -> t
 
   val query :
        t
@@ -55,13 +63,13 @@ module BaseData : DataQuerySig with type r = Type.base_data_map = struct
 
   type r = Type.base_data_map
 
-  let create ?db ~config_dir : t =
+  let create ?db config_dir : t =
     let db' = Option.value db ~default:(Store.db_open ~config_dir) in
     { db = db' }
 
   let build_select ?selector code dwm =
     let where =
-      Option.value_map selector ~default:"" ~f:Selector.to_where_clause
+      Option.value_map selector ~default:"" ~f:Selector.to_cond_clause
     in
     Printf.sprintf "SELECT * FROM %s %s;"
       (Store.BaseData.tablename ~dwm code)
@@ -95,7 +103,10 @@ module BaseData : DataQuerySig with type r = Type.base_data_map = struct
                 Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
           in
           Sqlite3.Rc.check rc;
-          (code, Array.of_list_rev elem_list))
+          if Selector.need_reverse selector then
+            (code, Array.of_list elem_list)
+          else
+            (code, Array.of_list_rev elem_list))
     in
     Store.wrap_txn t.db f
     |> Map.of_alist_reduce (module String) ~f:(fun b1 _ -> b1)
@@ -106,13 +117,13 @@ module DerivedData : DataQuerySig with type r = Type.derived_data_map = struct
 
   type r = Type.derived_data_map
 
-  let create ?db ~config_dir : t =
+  let create ?db config_dir : t =
     let db' = Option.value db ~default:(Store.db_open ~config_dir) in
     { db = db' }
 
   let build_select ?selector code dwm =
     let where =
-      Option.value_map selector ~default:"" ~f:Selector.to_where_clause
+      Option.value_map selector ~default:"" ~f:Selector.to_cond_clause
     in
     Printf.sprintf "SELECT * FROM %s %s;"
       (Store.DerivedData.tablename ~dwm code)
@@ -174,7 +185,10 @@ module DerivedData : DataQuerySig with type r = Type.derived_data_map = struct
                 Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
           in
           Sqlite3.Rc.check rc;
-          (code, Array.of_list_rev elem_list))
+          if Selector.need_reverse selector then
+            (code, Array.of_list elem_list)
+          else
+            (code, Array.of_list_rev elem_list))
     in
     Store.wrap_txn t.db f
     |> Map.of_alist_reduce (module String) ~f:(fun b _ -> b)
@@ -191,7 +205,7 @@ module IndustryTrendData = struct
 
   let build_select ?selector industry dwm =
     let where =
-      Option.value_map selector ~default:"" ~f:Selector.to_where_clause
+      Option.value_map selector ~default:"" ~f:Selector.to_cond_clause
     in
     Printf.sprintf "SELECT * FROM %s %s;"
       (Store.IndustryTrendData.tablename ~dwm industry)
@@ -217,7 +231,10 @@ module IndustryTrendData = struct
                 Option.value_map (of_row row) ~default:r ~f:(fun e -> e :: r))
           in
           Sqlite3.Rc.check rc;
-          (industry, Array.of_list_rev elem_list))
+          if Selector.need_reverse selector then
+            (industry, Array.of_list elem_list)
+          else
+            (industry, Array.of_list_rev elem_list))
     in
     Store.wrap_txn t.db f
     |> Map.of_alist_reduce (module String) ~f:(fun b _ -> b)
@@ -238,7 +255,7 @@ let%test_module _ =
     let%test "test-basedata_store" =
       ignore (Store.BaseData.table_drop db ~dwm:`DAY "xxxx");
       Store.BaseData.store db ~dwm:`DAY codes_and_raw_data_list;
-      let q = BaseData.create ~db ~config_dir:"." in
+      let q = BaseData.create ~db "." in
       let r =
         BaseData.query q ~codes:[ "xxxx" ] ~dwm:`DAY ~selector:Selector.ALL
       in

@@ -1,5 +1,5 @@
 (executable
  (name        tdbooster)
  (public_name tdbooster)
- (libraries   core strategy exec ppx_deriving_yojson.runtime statistics score l2 l1)
+ (libraries   core strategy exec ppx_deriving_yojson.runtime statistics score l3 l2 l1)
  (preprocess (pps ppx_jane ppx_deriving_yojson)))

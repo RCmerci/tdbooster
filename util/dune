@@ -1,0 +1,4 @@
+(library
+ (name util)
+ (wrapped false)
+ (libraries core))
