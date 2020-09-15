@@ -1,4 +1,4 @@
-open Core
+open Std
 
 type elem =
   { code : string
@@ -10,7 +10,7 @@ type elem =
 (* (string * float) list: (date, num) list *)
 type marketinfo =
   { title : string
-  ; data : (string * float) list
+  ; data : (Date.t * float) list
   }
 [@@deriving to_yojson]
 
@@ -38,11 +38,10 @@ let filter code day_k week_k zz800_day_k zz800_week_k =
   let week_attr = L1.Filter.Unify.unify code zz800_week_k week_k in
   { code; week_data = week_attr; day_data = day_attr }
 
-let marketinfo m =
-  let _, _, gc_day_k = Map.find_exn m "GC" in
-  let _, _, hg_day_k = Map.find_exn m "HG" in
-  let _, _, cl_day_k = Map.find_exn m "CL" in
-  let info = L1.Filter.Unify.marketinfo hg_day_k gc_day_k cl_day_k in
+let marketinfo config_dir =
+  let open L3.Marketinfo.Other_info in
+  let basedata = get_data ~config_dir in
+  let info = of_basedata basedata in
   [ { title = "GC"; data = info.gc }
   ; { title = "HG"; data = info.hg }
   ; { title = "CL"; data = info.cl }
@@ -141,7 +140,7 @@ let f codes output_dir refresh_data stats backtest =
               failwith (Printf.sprintf "code: %s, %s" code (Exn.to_string e)))
         |> Map.data
       in
-      let marketinfo = marketinfo m in
+      let marketinfo = marketinfo output_dir in
       let industry_trend = L1.Filter.Unify.industry_trend m in
       output_to_yojson { data; marketinfo; industry_trend }
     else
