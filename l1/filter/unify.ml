@@ -50,38 +50,6 @@ let unify code (zz800 : L1_deriving.Type.Derived_data.t list)
   | List.Or_unequal_lengths.Ok v -> v
   | List.Or_unequal_lengths.Unequal_lengths -> failwith "unequal length of data"
 
-(* let marketinfo (hg : L1_loader.Type.RawData.t list)
- *     (gc : L1_loader.Type.RawData.t list) (cl : L1_loader.Type.RawData.t list) :
- *     Type.Market_data.t =
- *   let module C = L1_cursor.RawData_cursor in
- *   let gc_c' = C.create_exn gc in
- *   let gc_c = C.move_to_last gc_c' in
- *   let hg_c' = C.create_exn hg in
- *   let hg_c = C.move_to_last hg_c' in
- *   let cl_c' = C.create_exn cl in
- *   let cl_c = C.move_to_last cl_c' in
- *   let gc_data =
- *     Data_array.data_point_Nday gc_c 120 L1_loader.Type.close
- *     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
- *   in
- *   let hg_data =
- *     Data_array.data_point_Nday hg_c 120 L1_loader.Type.close
- *     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
- *   in
- *   let cl_data =
- *     Data_array.data_point_Nday cl_c 120 L1_loader.Type.close
- *     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
- *   in
- *   let hg_div_gc =
- *     Data_array.data_div_point_120d_close hg_c gc_c
- *     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
- *   in
- *   let cl_div_gc =
- *     Data_array.data_div_point_120d_close cl_c gc_c
- *     |> List.map ~f:(fun (d, v) -> (Date.to_string d, v))
- *   in
- *   { gc = gc_data; hg = hg_data; cl = cl_data; hg_div_gc; cl_div_gc } *)
-
 type datamap =
   ( string
   , L1_deriving.Type.Derived_data.t list
