@@ -16,3 +16,10 @@ let cl = "CL"
 let hg = "HG"
 
 let common_codes = [ zz800; cl; gc; hg ]
+
+(* utils *)
+
+let get_industry_opt code =
+  List.find industry_list ~f:(fun e ->
+      List.mem e.codes code ~equal:String.equal)
+  |> Option.map ~f:(fun (e : L1_loader.Type.IndustryList.one) -> e.category)

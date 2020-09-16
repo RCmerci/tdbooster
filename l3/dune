@@ -1,3 +1,4 @@
 (library
  (name l3)
- (libraries util l2))
+ (libraries util l2 ppx_deriving_yojson.runtime)
+ (preprocess (pps ppx_deriving_yojson)))

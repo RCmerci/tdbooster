@@ -52,3 +52,60 @@ module Other_info = struct
     in
     { gc = gc'; hg = hg'; cl = cl'; hg_div_gc; cl_div_gc }
 end
+
+module Basedata_info = struct
+  type attr =
+    { date : Date.t
+    ; ma_arranged : bool
+    ; relative_strength : float (* price/zz800_price *)
+    }
+  [@@deriving yojson]
+
+  type elem =
+    { code : string
+    ; industry : string option
+    ; day_data : attr list
+    }
+  [@@deriving yojson]
+
+  type t = elem list [@@deriving yojson]
+
+  let of_basedata (basedata : L2.Data.Type.base_data_map)
+      (derived_data : L2.Data.Type.derived_data_map) : t =
+    let f1 (derived_data : L2.Data.Type.derived_data_elem array) =
+      Array.map derived_data ~f:(fun e ->
+          let ma_arranged = e.ma20 > e.ma60 && e.ma60 > e.ma120 in
+          (e.date, ma_arranged))
+      |> Array.to_list
+    in
+    assert (Map.mem basedata L2.Data.Const.zz800);
+    let zz800 = Map.find_exn basedata L2.Data.Const.zz800 in
+    let f2 (basedata : L2.Data.Type.base_data_elem array) =
+      assert (Array.length basedata = Array.length zz800);
+      Array.map2_exn basedata zz800 ~f:(fun e1 e2 ->
+          (e1.date, (e1.percent_change -. e2.percent_change) *. 100.))
+      |> Array.to_list
+    in
+    let r1 = Map.map derived_data ~f:f1 in
+    let r2 = Map.map basedata ~f:f2 in
+    Map.merge r1 r2 ~f:(fun ~key:code v ->
+        match v with
+        | `Both (v1, v2) ->
+          let h1 = Hashtbl.of_alist_exn (module Date) v1 in
+          let h2 = Hashtbl.of_alist_exn (module Date) v2 in
+          let attrlist =
+            Hashtbl.merge h1 h2 ~f:(fun ~key:_ v ->
+                match v with
+                | `Both (ma_arranged, relative_strength) ->
+                  Some (ma_arranged, relative_strength)
+                | _ -> None)
+            |> Hashtbl.to_alist
+            |> List.sort ~compare:(fun (d1, _) (d2, _) -> Date.compare d1 d2)
+            |> List.map ~f:(fun (date, (ma_arranged, relative_strength)) ->
+                   { date; ma_arranged; relative_strength })
+          in
+          let industry = L2.Data.Const.get_industry_opt code in
+          Some { code; industry; day_data = attrlist }
+        | _ -> None)
+    |> Map.to_alist |> List.map ~f:snd
+end

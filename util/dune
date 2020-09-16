@@ -1,5 +1,4 @@
 (library
  (name util)
  (wrapped false)
- (libraries core ppx_deriving_yojson.runtime)
- (preprocess (pps ppx_deriving_yojson)))
+ (libraries core yojson))

@@ -1,4 +1,5 @@
 include Core
+include Poly
 
 module Date = struct
   include Core.Date
