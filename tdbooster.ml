@@ -41,7 +41,7 @@ let filter code day_k week_k zz800_day_k zz800_week_k =
 let marketinfo config_dir =
   let open L3.Marketinfo.Other_info in
   let basedata = get_data ~config_dir in
-  let info = of_basedata basedata in
+  let info = of_data basedata in
   [ { title = "GC"; data = info.gc }
   ; { title = "HG"; data = info.hg }
   ; { title = "CL"; data = info.cl }

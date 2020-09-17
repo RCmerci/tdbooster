@@ -199,7 +199,7 @@ module IndustryTrendData = struct
 
   type r = Type.industry_trend_data_map
 
-  let create ?db ~config_dir =
+  let create ?db config_dir =
     let db' = Option.value db ~default:(Store.db_open ~config_dir) in
     { db = db' }
 
