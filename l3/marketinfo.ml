@@ -17,6 +17,22 @@ module Basedata_info = struct
 
   type t = elem list [@@deriving yojson]
 
+  let get_data ~config_dir ~custom_codes =
+    let open L2.Data in
+    let q = Query.BaseData.create config_dir in
+    let q' = Query.DerivedData.create config_dir in
+    let basedata =
+      Query.BaseData.query q
+        ~codes:(L2.Data.Const.zz800 :: custom_codes)
+        ~dwm:`DAY ~selector:(Query.Selector.Last 200)
+    in
+    let derived_data =
+      Query.DerivedData.query q'
+        ~codes:(L2.Data.Const.zz800 :: custom_codes)
+        ~dwm:`DAY ~selector:(Query.Selector.Last 200)
+    in
+    (basedata, derived_data)
+
   let of_data (basedata : L2.Data.Type.base_data_map)
       (derived_data : L2.Data.Type.derived_data_map) : t =
     let f1 (derived_data : L2.Data.Type.derived_data_elem array) =
@@ -30,6 +46,7 @@ module Basedata_info = struct
     let f2 (basedata : L2.Data.Type.base_data_elem array) =
       assert (Array.length basedata = Array.length zz800);
       Array.map2_exn basedata zz800 ~f:(fun e1 e2 ->
+          assert (e1.date = e2.date);
           (e1.date, (e1.percent_change -. e2.percent_change) *. 100.))
       |> Array.to_list
     in
@@ -41,11 +58,16 @@ module Basedata_info = struct
           let h1 = Hashtbl.of_alist_exn (module Date) v1 in
           let h2 = Hashtbl.of_alist_exn (module Date) v2 in
           let attrlist =
-            Hashtbl.merge h1 h2 ~f:(fun ~key:_ v ->
+            Hashtbl.merge h1 h2 ~f:(fun ~key:d v ->
                 match v with
                 | `Both (ma_arranged, relative_strength) ->
                   Some (ma_arranged, relative_strength)
-                | _ -> None)
+                | `Left _ ->
+                  Debug.eprintf "left:%s" (Date.to_string d);
+                  None
+                | `Right _ ->
+                  Debug.eprintf "right:%s" (Date.to_string d);
+                  None)
             |> Hashtbl.to_alist
             |> List.sort ~compare:(fun (d1, _) (d2, _) -> Date.compare d1 d2)
             |> List.map ~f:(fun (date, (ma_arranged, relative_strength)) ->
@@ -118,7 +140,8 @@ module Industry_trend_info = struct
   let get_data ~config_dir =
     let open L2.Data in
     let q = Query.IndustryTrendData.create config_dir in
-    Query.IndustryTrendData.query q ~industries:Const.industry_cat_list
+    Query.IndustryTrendData.query q
+      ~industries:("sum" :: Const.industry_cat_list)
       ~dwm:`DAY ~selector:(Query.Selector.Last 150)
 
   let of_data (industry_trend_info : L2.Data.Type.industry_trend_data_map) : t =

@@ -3,6 +3,9 @@ open Sqlite3
 
 type raw_data_list = L1.Loader.Type.raw_data
 
+let db_delete ~config_dir =
+  try Unix.remove (Filename.concat config_dir "tdbooster.db") with _ -> ()
+
 let db_open ~config_dir =
   Sqlite3.db_open (Filename.concat config_dir "tdbooster.db")
 
@@ -19,6 +22,9 @@ module ReadCodesBaseData : sig
 
   val read_all_codes_base_data :
     config_dir:string -> custom_codes:string list -> codes_and_raw_data_list
+
+  val fetch_all_codes_base_data :
+    config_dir:string -> custom_codes:string list -> unit
 
   val read_all_codes_week_base_data :
     codes_and_raw_data_list -> codes_and_raw_week_data_list
@@ -61,6 +67,32 @@ end = struct
 
   let pack_month = ident
 
+  let refresh_data_aux codes output_dir =
+    let module T = Lwt_throttle.Make (Unit) in
+    let throttler = T.create ~rate:3 ~max:99999 ~n:1 in
+    let open Lwt.Infix in
+    let (_ : unit list) =
+      Lwt_list.map_p
+        (fun code ->
+          let get_data =
+            match code with
+            | "GC"
+            | "HG"
+            | "CL" ->
+              L1.Loader.From_sina.Futures.get_futrues_data
+            | _ ->
+              fun ~output_dir ~code ->
+                L1.Loader.From_baostock.run_py_script ~code ~output_dir
+                >>= fun _ ->
+                L1.Loader.From_baostock_ttm.run_py_script ~code ~output_dir
+                >>= fun _ -> Lwt.return_unit
+          in
+          T.wait throttler () >>= fun _ -> get_data ~code ~output_dir)
+        codes
+      |> Lwt_main.run
+    in
+    ()
+
   let read_all_codes_base_data ~config_dir ~custom_codes :
       codes_and_raw_data_list =
     List.map (all_codes ~custom_codes) ~f:(fun code ->
@@ -73,6 +105,23 @@ end = struct
             L1.Loader.From_txt.read_from_file
               (Filename.concat config_dir code)
               (Filename.concat config_dir (code ^ ".ttm")) ))
+
+  let fetch_all_codes_base_data ~config_dir ~custom_codes =
+    let rec refresh_errcodes data err_codes count =
+      if count = 0 then
+        failwithf "fetchdata failed: %s" (List.to_string err_codes ~f:ident) ()
+      else
+        let err_codes = Validate_data.BaseData.validate data in
+        match err_codes with
+        | [] -> ()
+        | _ ->
+          refresh_data_aux err_codes config_dir;
+          let data = read_all_codes_base_data ~config_dir ~custom_codes in
+          refresh_errcodes data err_codes (count - 1)
+    in
+    refresh_data_aux (all_codes ~custom_codes) config_dir;
+    let data = read_all_codes_base_data ~config_dir ~custom_codes in
+    refresh_errcodes data [] 3
 
   let read_all_codes_week_base_data codes_and_raw_data_list =
     List.map codes_and_raw_data_list ~f:(fun (code, raw_data_list) ->
@@ -198,8 +247,8 @@ module DerivedData = struct
          ^ "ema20 FLOAT NULL," ^ "ema26 INT NULL," ^ "ema60 FLOAT NULL,"
          ^ "ema120 FLOAT NULL," ^ "dif FLOAT NULL," ^ "dea FLOAT NULL,"
          ^ "macd FLOAT NULL," ^ "bias24 FLOAT NULL," ^ "rsi6 FLOAT NULL,"
-         ^ "rsi12 FLOAT NULL," ^ "rsi24 FLOAT NULL," ^ "kjd933_1 FLOAT NULL,"
-         ^ "kjd933_2 FLOAT NULL," ^ "kjd933_3 FLOAT NULL" ^ ");" ));
+         ^ "rsi12 FLOAT NULL," ^ "rsi24 FLOAT NULL," ^ "kdj933_1 FLOAT NULL,"
+         ^ "kdj933_2 FLOAT NULL," ^ "kdj933_3 FLOAT NULL" ^ ");" ));
     ignore
       (exec db ("CREATE UNIQUE INDEX index_date on " ^ tablename ^ "(date);"))
 
@@ -252,7 +301,8 @@ module DerivedData = struct
   let store_day_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
       List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
-          (code, BaseData.to_day_derived_data raw_data_list))
+          try (code, BaseData.to_day_derived_data raw_data_list)
+          with e -> failwithf "%s: %s" code (Exn.to_string e) ())
     in
     store db ~dwm:`DAY codes_and_derived_data_list
 

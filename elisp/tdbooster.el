@@ -108,9 +108,9 @@
 
 ")
 (defvar tdbooster--table-header
-  "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30| ma up| ma arranged|price<ma20|industry| price(-20d)|price(-60d)|price(-120d)|
+  "| code      | rsi golden cross | rsi6 < 20| rsi6 < 30| ma up| ma arranged|price<ma20|industry|
 |-----------+------------------+---+---|")
-(defvar tdbooster--table-format "| %s | %s | %s | %s | %s | %s | %s | %S | %s(%f) | %s(%f) | %s(%f) |")
+(defvar tdbooster--table-format "| %s | %s | %s | %s | %s | %s | %s | %S |")
 (defvar tdbooster--stat-table-header
   "|code| %s |
 |----|")
@@ -150,17 +150,8 @@
 	 (ma_up (equal t (alist-get 'ma_up daylast)))
 	 (ma_arranged (equal t (alist-get 'ma_arranged daylast)))
 	 (price<ma20 (equal t (alist-get 'price_less_ma20 daylast)))
-	 (price_before_20_price (seq-elt (alist-get 'price_before_20 daylast) 0))
-	 (price_before_20_date (seq-elt (alist-get 'price_before_20 daylast) 1))
-	 (price_before_60_price (seq-elt (alist-get 'price_before_60 daylast) 0))
-	 (price_before_60_date (seq-elt (alist-get 'price_before_60 daylast) 1))
-	 (price_before_120_price (seq-elt (alist-get 'price_before_120 daylast) 0))
-	 (price_before_120_date (seq-elt (alist-get 'price_before_120 daylast) 1))
 	 (industry (alist-get 'industry daylast)))
-    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20 industry
-	    price_before_20_date price_before_20_price
-	    price_before_60_date price_before_60_price
-	    price_before_120_date price_before_120_price)))
+    (format tdbooster--table-format code rsi_golden_cross rsi6_lt_20 rsi6_lt_30 ma_up ma_arranged price<ma20 industry)))
 
 (defun tdbooster--render-all-weekly (json)
   (s-join "\n" (cons "\n** WEEK"
@@ -326,8 +317,8 @@
       (read-only-mode -1)
       (erase-buffer)
       (insert tdbooster-org-headers)
-      (insert (tdbooster--render-all-weekly json))
-      (org-table-align)
+      ;; (insert (tdbooster--render-all-weekly json))
+      ;; (org-table-align)
       (insert (tdbooster--render-all-daily json))
       (org-table-align)
       (insert "\n** relative strength\n")

@@ -1,5 +1,7 @@
 open Core
 
+let all_codes = Store.all_codes
+
 module Selector = struct
   type t =
     | GE of Date.t
@@ -151,9 +153,9 @@ module DerivedData : DataQuerySig with type r = Type.derived_data_map = struct
     to_float r.(13) >>= fun rsi6 ->
     to_float r.(14) >>= fun rsi12 ->
     to_float r.(15) >>= fun rsi24 ->
-    to_float r.(16) >>= fun kdj933_1 ->
-    to_float r.(17) >>= fun kdj933_2 ->
-    to_float r.(18) >>= fun kdj933_3 ->
+    let kdj933_1 = Option.value (to_float r.(16)) ~default:0. in
+    let kdj933_2 = Option.value (to_float r.(17)) ~default:0. in
+    let kdj933_3 = Option.value (to_float r.(18)) ~default:0. in
     let date = Date.of_string date' in
     Some
       ( { date

@@ -1,12 +1,5 @@
 open Std
 
-type elem =
-  { code : string
-  ; week_data : L1.Filter.Type.Attributed_data.t list
-  ; day_data : L1.Filter.Type.Attributed_data.t list
-  }
-[@@deriving to_yojson]
-
 (* (string * float) list: (date, num) list *)
 type marketinfo =
   { title : string
@@ -15,28 +8,14 @@ type marketinfo =
 [@@deriving to_yojson]
 
 type output =
-  { data : elem list
+  { data : L3.Marketinfo.Basedata_info.t
   ; marketinfo : marketinfo list
   ; (* code date data *)
-    industry_trend : (string * (string * float) list) list
+    industry_trend : L3.Marketinfo.Industry_trend_info.t
   }
 [@@deriving to_yojson]
 
 type title = string [@@deriving to_yojson]
-
-type stat_output = { data : (title * Statistics.Type.display_struct list) list }
-[@@deriving to_yojson]
-
-let stat code day_k _week_k stats =
-  List.map stats ~f:(fun stat ->
-      match stat with
-      | "oversold" -> Statistics.Oversold.f code day_k
-      | _ -> failwith "")
-
-let filter code day_k week_k zz800_day_k zz800_week_k =
-  let day_attr = L1.Filter.Unify.unify code zz800_day_k day_k in
-  let week_attr = L1.Filter.Unify.unify code zz800_week_k week_k in
-  { code; week_data = week_attr; day_data = day_attr }
 
 let marketinfo config_dir =
   let open L3.Marketinfo.Other_info in
@@ -56,103 +35,65 @@ let backtest code strategy rawdata =
   |> Exec.Executor.to_output code
   |> Exec.Output.to_yojson
 
-let refresh_data_aux codes output_dir =
-  let module T = Lwt_throttle.Make (Unit) in
-  let throttler = T.create ~rate:4 ~max:99999 ~n:1 in
-  let open Lwt.Infix in
-  let (_ : unit list) =
-    Lwt_list.map_p
-      (fun code ->
-        let get_data =
-          match code with
-          | "GC"
-          | "HG"
-          | "CL" ->
-            L1.Loader.From_sina.Futures.get_futrues_data
-          | _ ->
-            fun ~output_dir ~code ->
-              L1.Loader.From_baostock.run_py_script ~code ~output_dir
-              >>= fun _ ->
-              L1.Loader.From_baostock_ttm.run_py_script ~code ~output_dir
-              >>= fun _ -> Lwt.return_unit
-        in
-        T.wait throttler () >>= fun _ -> get_data ~code ~output_dir)
-      codes
-    |> Lwt_main.run
-  in
-  ()
-
 let f codes output_dir refresh_data stats backtest =
-  let all_codes =
-    List.concat
-      [ codes; L1.Loader.Industry.all_codes; L2.Data.Const.common_codes ]
-    |> List.stable_dedup
-  in
-  if refresh_data then refresh_data_aux all_codes output_dir;
-  let mapf code =
-    let read_from_file =
-      match code with
-      | "GC"
-      | "HG"
-      | "CL" ->
-        L1.Loader.From_sina.Futures.read_from_file
-      | _ ->
-        fun ~output_dir ~code ->
-          L1.Loader.From_txt.read_from_file
-            (Filename.concat output_dir code)
-            (Filename.concat output_dir (code ^ ".ttm"))
-    in
-    let rawdata = read_from_file ~output_dir ~code in
-    let raw_day_k = rawdata in
-    let week_k =
-      Option.value_exn
-        ~message:(Printf.sprintf "code: %s" code)
-        (L1.Deriving.Unify.unify_week rawdata)
-    in
-    let day_k =
-      Option.value_exn
-        ~message:(Printf.sprintf "code: %s" code)
-        (L1.Deriving.Unify.unify_day rawdata)
-    in
-    (code, (day_k, week_k, raw_day_k))
-  in
-  let k =
-    List.map all_codes ~f:(fun code ->
-        try mapf code
-        with _ ->
-          refresh_data_aux [ code ] output_dir;
-          mapf code)
-  in
-  let m = Map.of_alist_exn (module String) k in
-  let selected_m =
-    Map.filteri m ~f:(fun ~key ~data:_data ->
-        List.exists codes ~f:(equal_string key))
+  let () =
+    let open L2.Data.Store in
+    if refresh_data then (
+      let () =
+        ReadCodesBaseData.fetch_all_codes_base_data ~config_dir:output_dir
+          ~custom_codes:codes
+      in
+      db_delete ~config_dir:output_dir;
+      let db = db_open ~config_dir:output_dir in
+      let raw_data =
+        ReadCodesBaseData.read_all_codes_base_data ~config_dir:output_dir
+          ~custom_codes:codes
+      in
+      BaseData.store_day_data db raw_data;
+      BaseData.store_week_data db raw_data;
+      BaseData.store_month_data db raw_data;
+      DerivedData.store_day_data db raw_data;
+      DerivedData.store_week_data db raw_data;
+      DerivedData.store_month_data db raw_data;
+      IndustryTrendData.store_day_data db raw_data;
+      IndustryTrendData.store_week_data db raw_data;
+      IndustryTrendData.store_month_data db raw_data
+    ) else
+      let () = db_delete ~config_dir:output_dir in
+      let db = db_open ~config_dir:output_dir in
+      let raw_data =
+        ReadCodesBaseData.read_all_codes_base_data ~config_dir:output_dir
+          ~custom_codes:codes
+      in
+      BaseData.store_day_data db raw_data;
+      BaseData.store_week_data db raw_data;
+      BaseData.store_month_data db raw_data;
+      DerivedData.store_day_data db raw_data;
+      DerivedData.store_week_data db raw_data;
+      DerivedData.store_month_data db raw_data;
+      IndustryTrendData.store_day_data db raw_data;
+      IndustryTrendData.store_week_data db raw_data;
+      IndustryTrendData.store_month_data db raw_data
   in
   let js =
     if List.length backtest > 0 then
       Yojson.Safe.from_string "{\"backtest\": true}"
     else if List.length stats = 0 then
-      let zz800_day_k, zz800_week_k, _ = Map.find_exn m L2.Data.Const.zz800 in
-      let data =
-        Map.mapi selected_m ~f:(fun ~key:code ~data:(day_k, week_k, _) ->
-            try filter code day_k week_k zz800_day_k zz800_week_k
-            with e ->
-              failwith (Printf.sprintf "code: %s, %s" code (Exn.to_string e)))
-        |> Map.data
+      let basedata, derived_data =
+        L3.Marketinfo.Basedata_info.get_data ~config_dir:output_dir
+          ~custom_codes:codes
+      in
+      let basedatainfo =
+        L3.Marketinfo.Basedata_info.of_data basedata derived_data
       in
       let marketinfo = marketinfo output_dir in
-      let industry_trend = L1.Filter.Unify.industry_trend m in
-      output_to_yojson { data; marketinfo; industry_trend }
-    else
-      let data =
-        Map.mapi m ~f:(fun ~key:code ~data:(day_k, week_k, _) ->
-            stat code day_k week_k stats)
-        |> Map.data |> List.join
-        |> List.map ~f:(fun data -> (data.title, data))
-        |> Map.of_alist_multi (module String)
-        |> Map.to_alist
+      let industry_trend =
+        L3.Marketinfo.Industry_trend_info.(
+          of_data (get_data ~config_dir:output_dir))
       in
-      stat_output_to_yojson { data }
+      output_to_yojson { data = basedatainfo; marketinfo; industry_trend }
+    else
+      Yojson.Safe.from_string "{\"stat\": true}"
   in
   Yojson.Safe.to_string js |> Out_channel.print_string
 
