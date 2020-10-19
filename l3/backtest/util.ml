@@ -20,10 +20,10 @@ end = struct
   [@@deriving sexp_of]
 
   let create total =
-    { part1 = Some (total /. 10.)
-    ; part2 = Some (total /. 5.)
-    ; part3 = Some (total *. (3. /. 10.))
-    ; part4 = Some (total *. (4. /. 10.))
+    { part1 = Some (total /. 2.)
+    ; part2 = Some (total /. 2.)
+    ; part3 = Some (total *. (0. /. 10.))
+    ; part4 = Some (total *. (0. /. 10.))
     }
 
   let buy t =
@@ -74,6 +74,7 @@ type current_txn =
 type state =
   { db : L2.Data.Query.IndustryTrendData.t
   ; db2 : L2.Data.Query.BaseData.t
+  ; db3 : L2.Data.Query.DerivedData.t
   ; today : Date.t
   ; txn_history :
       (string, ((Date.t * float) * (Date.t * float) * string) list) Hashtbl.t
@@ -136,12 +137,29 @@ let lastNdays_trend n state =
 
 let lastday_trend state = (lastNdays_trend 1 state).(0)
 
-let go_on ?phase state =
+let lastday_deriveddata state code =
+  let lastday = lastday state in
+  let last_deriveddata =
+    L2.Data.Query.DerivedData.query state.db3 ~codes:[ code ] ~dwm:`DAY
+      ~selector:(L2.Data.Query.Selector.BetweenEE (lastday, lastday))
+  in
+  let last_deriveddata' = Map.find_exn last_deriveddata code in
+  last_deriveddata'.(0)
+
+let today_basedata state code =
+  let today_basedata =
+    L2.Data.Query.BaseData.query state.db2 ~codes:[ code ] ~dwm:`DAY
+      ~selector:(L2.Data.Query.Selector.BetweenEE (state.today, state.today))
+  in
+  let today_basedata' = Map.find_exn today_basedata code in
+  today_basedata'.(0)
+
+let go_on ?phase ?(nextNday = 1) state =
   match phase with
-  | None -> { state with today = nextday state }
+  | None -> { state with today = nextNdays nextNday state }
   | Some phase ->
     { state with
-      today = nextday state
+      today = nextNdays nextNday state
     ; current_txn = { state.current_txn with phase }
     }
 

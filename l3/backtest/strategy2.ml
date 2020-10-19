@@ -3,9 +3,13 @@ open Util
 
 let eval (state : state) test_code =
   let lastday_above_ma20_percent = lastday_trend state in
+  let last_rsi6 = (lastday_deriveddata state test_code).rsi6 in
+  let today_basedata = today_basedata state test_code in
+  let today_up_less_3 = today_basedata.percent_change < 0.03 in
   match state.current_txn.phase with
   | Phase0 ->
-    if lastday_above_ma20_percent < 25. then
+    if lastday_above_ma20_percent < 25. && last_rsi6 < 20. && today_up_less_3
+    then
       let part, money' = Money.buy state.money in
       let holding_codes =
         (test_code, (state.today, close state test_code, part))
@@ -28,8 +32,10 @@ let eval (state : state) test_code =
       go_on state
   | Phase1 ->
     if lastday_above_ma20_percent > 35. then
-      go_on ~phase:Phase4 state
-    else if lastday_above_ma20_percent < 20. then
+      go_on ~phase:Phase4 ~nextNday:5 state
+    else if
+      lastday_above_ma20_percent < 20. && last_rsi6 < 25. && today_up_less_3
+    then
       let part, money' = Money.buy state.money in
       let holding_codes =
         (test_code, (state.today, close state test_code, part))
@@ -46,14 +52,16 @@ let eval (state : state) test_code =
           ; ever_sold_highestpart = false
           }
       ; money = money'
-      ; today = nextNdays 2 state
+      ; today = nextNdays 1 state
       }
     else
       go_on state
   | Phase2 ->
     if lastday_above_ma20_percent > 35. then
-      go_on ~phase:Phase4 state
-    else if lastday_above_ma20_percent < 15. then
+      go_on ~phase:Phase4 ~nextNday:5 state
+    else if
+      lastday_above_ma20_percent < 15. && last_rsi6 < 25. && today_up_less_3
+    then
       let part, money' = Money.buy state.money in
       let holding_codes =
         (test_code, (state.today, close state test_code, part))
@@ -70,14 +78,16 @@ let eval (state : state) test_code =
           ; ever_sold_highestpart = false
           }
       ; money = money'
-      ; today = nextNdays 2 state
+      ; today = nextNdays 1 state
       }
     else
       go_on state
   | Phase3 ->
     if lastday_above_ma20_percent > 35. then
-      go_on ~phase:Phase4 state
-    else if lastday_above_ma20_percent < 10. then
+      go_on ~phase:Phase4 ~nextNday:5 state
+    else if
+      lastday_above_ma20_percent < 10. && last_rsi6 < 25. && today_up_less_3
+    then
       let part, money' = Money.buy state.money in
       let holding_codes =
         (test_code, (state.today, close state test_code, part))
@@ -94,7 +104,7 @@ let eval (state : state) test_code =
           ; ever_sold_highestpart = false
           }
       ; money = money'
-      ; today = nextNdays 2 state
+      ; today = nextNdays 1 state
       }
     else
       go_on state
@@ -117,7 +127,7 @@ let eval (state : state) test_code =
     let _, (_, lowest_buy_price, _) =
       Option.value_exn (lowest_holding state.current_txn)
     in
-    if (sell_price -. lowest_buy_price) /. lowest_buy_price > 0.15 then
+    if (sell_price -. lowest_buy_price) /. lowest_buy_price > 0.1 then
       let _ =
         add_txn_history state state.current_txn state.today sell_price "1"
       in
@@ -127,7 +137,7 @@ let eval (state : state) test_code =
         List.Assoc.find_exn state.current_txn.holding_codes ~equal:String.equal
           test_code
       in
-      if buy_price > sell_price then
+      if buy_price *. 0.95 > sell_price then
         let _ =
           add_txn_history state state.current_txn state.today sell_price "6"
         in
