@@ -1,0 +1,36 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  workflow_dispatch:
+  schedule:
+      - cron: "0 18 * * 1-5"
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+        
+      - name: Set up OCaml
+        # You may pin to the exact commit or the version.
+        # uses: avsm/setup-ocaml@a4c3fb2490fe41b448c5e7bbaa446d79e87e0ee7
+        uses: avsm/setup-ocaml@v1.1.2
+        with:
+          # Version of the OCaml compiler to initialise
+          ocaml-version: 4.10.1
+
+      - name: install dependencies
+        run: opam install . --deps-only --with-doc --with-test
+
+      # Runs a set of commands using the runners shell
+      - name: build
+        run: opam exec -- dune build
