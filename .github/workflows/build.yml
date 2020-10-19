@@ -6,8 +6,6 @@ name: build
 # events but only for the master branch
 on:
   workflow_dispatch:
-  schedule:
-      - cron: "0 18 * * 1-5"
   push:
     branches: [ master ]
 
@@ -36,3 +34,8 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: build
         run: opam exec -- dune build
+      
+      - name: upload-bin
+        uses: actions/upload-artifact@v2.2.0
+        with:
+          path: _build/default/tdbooster.exe
