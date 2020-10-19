@@ -21,5 +21,8 @@
   ppx_jane
   ppx_blob
   yojson
-  sqlite3)
+  sqlite3
+  lwt
+  cohttp-lwt-unix
+  shexp)
   (synopsis "Tdbooster"))

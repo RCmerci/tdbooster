@@ -18,6 +18,9 @@ depends: [
   "ppx_blob"
   "yojson"
   "sqlite3"
+  "lwt"
+  "cohttp-lwt-unix"
+  "shexp"
 ]
 build: [
   ["dune" "subst"] {pinned}
