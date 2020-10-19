@@ -19,6 +19,7 @@
   ppx_here
   ppx_inline_test
   ppx_jane
+  ppx_blob
   yojson
   sqlite3)
   (synopsis "Tdbooster"))
