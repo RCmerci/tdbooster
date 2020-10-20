@@ -21,10 +21,6 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: download built binary
-        uses: actions/download-artifact@v2.0.5
-        with:
-          name: artifact
       # Runs a single command using the runners shell
       - name: Setup Python
         uses: actions/setup-python@v2.1.4
