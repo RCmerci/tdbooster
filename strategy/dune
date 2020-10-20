@@ -1,6 +1,0 @@
-(library
- (inline_tests)
- (name strategy)
- (libraries core l1)
- (preprocess
-  (pps ppx_inline_test ppx_deriving.show ppx_here)))

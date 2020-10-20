@@ -1,6 +1,0 @@
-(library
- (inline_tests)
- (name exec)
- (libraries core l1 strategy yojson ppx_deriving_yojson.runtime)
- (preprocess
-  (pps ppx_inline_test ppx_deriving.show ppx_here ppx_deriving_yojson)))

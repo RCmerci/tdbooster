@@ -1,4 +1,4 @@
-open Core
+open Std
 open Sqlite3
 
 type raw_data_list = L1.Loader.Type.raw_data
@@ -218,14 +218,20 @@ module BaseData = struct
   let to_month_base_data raw_data_list =
     L1.Deriving.Month_k.month_k raw_data_list
 
-  let to_day_derived_data raw_data_list =
-    Option.value (L1.Deriving.Unify.unify_day raw_data_list) ~default:[]
+  let to_day_derived_data raw_data_list zz800_raw_data_list =
+    Option.value
+      (L1.Deriving.Unify.unify_day raw_data_list zz800_raw_data_list)
+      ~default:[]
 
-  let to_week_derived_data raw_data_list =
-    Option.value (L1.Deriving.Unify.unify_week raw_data_list) ~default:[]
+  let to_week_derived_data raw_data_list zz800_raw_data_list =
+    Option.value
+      (L1.Deriving.Unify.unify_week raw_data_list zz800_raw_data_list)
+      ~default:[]
 
-  let to_month_derived_data raw_data_list =
-    Option.value (L1.Deriving.Unify.unify_month raw_data_list) ~default:[]
+  let to_month_derived_data raw_data_list zz800_raw_data_list =
+    Option.value
+      (L1.Deriving.Unify.unify_month raw_data_list zz800_raw_data_list)
+      ~default:[]
 end
 
 module DerivedData = struct
@@ -248,15 +254,19 @@ module DerivedData = struct
          ^ "ema120 FLOAT NULL," ^ "dif FLOAT NULL," ^ "dea FLOAT NULL,"
          ^ "macd FLOAT NULL," ^ "bias24 FLOAT NULL," ^ "rsi6 FLOAT NULL,"
          ^ "rsi12 FLOAT NULL," ^ "rsi24 FLOAT NULL," ^ "kdj933_1 FLOAT NULL,"
-         ^ "kdj933_2 FLOAT NULL," ^ "kdj933_3 FLOAT NULL" ^ ");" ));
+         ^ "kdj933_2 FLOAT NULL," ^ "kdj933_3 FLOAT NULL," ^ "rel5 FLOAT NULL,"
+         ^ "rel20 FLOAT NULL," ^ "rel60 FLOAT NULL," ^ "rel120 FLOAT NULL"
+         ^ ");" ));
     ignore
       (exec db ("CREATE UNIQUE INDEX index_date on " ^ tablename ^ "(date);"))
 
   let insert_sql ~dwm code =
     "INSERT INTO " ^ tablename ~dwm code
     ^ "(date, ma20, ma60, ma120, ema12, ema20, ema26, ema60, ema120, dif, dea, \
-       macd, bias24, rsi6, rsi12, rsi24, kdj933_1, kdj933_2, kdj933_3)"
-    ^ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+       macd, bias24, rsi6, rsi12, rsi24, kdj933_1, kdj933_2, kdj933_3, rel5, \
+       rel20, rel60, rel120)"
+    ^ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \
+       ?, ?)"
 
   let to_db db ~dwm code
       (derived_data_list : L1.Deriving.Type.Derived_data.t list) =
@@ -287,11 +297,20 @@ module DerivedData = struct
           |> Rc.check;
           bind insert_stmt 19 (Sqlite3.Data.FLOAT (Tuple3.get3 e.kdj933))
           |> Rc.check;
+          bind insert_stmt 20 (Sqlite3.Data.FLOAT e.rel5) |> Rc.check;
+          bind insert_stmt 21 (Sqlite3.Data.FLOAT e.rel20) |> Rc.check;
+          bind insert_stmt 22 (Sqlite3.Data.FLOAT e.rel60) |> Rc.check;
+          bind insert_stmt 23 (Sqlite3.Data.FLOAT e.rel120) |> Rc.check;
           step insert_stmt |> Rc.check)
     in
     wrap_txn db f
 
   open ReadCodesBaseData
+
+  let get_zz800_raw_data_list codes_and_raw_data_list =
+    List.Assoc.find_exn
+      (unpack codes_and_raw_data_list)
+      ~equal:( = ) Const.zz800
 
   let store db ~dwm codes_and_derived_data_list =
     List.iter codes_and_derived_data_list ~f:(fun (code, derived_data_list) ->
@@ -301,7 +320,10 @@ module DerivedData = struct
   let store_day_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
       List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
-          try (code, BaseData.to_day_derived_data raw_data_list)
+          try
+            ( code
+            , BaseData.to_day_derived_data raw_data_list
+                (get_zz800_raw_data_list codes_and_raw_data_list) )
           with e -> failwithf "%s: %s" code (Exn.to_string e) ())
     in
     store db ~dwm:`DAY codes_and_derived_data_list
@@ -309,21 +331,27 @@ module DerivedData = struct
   let store_week_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
       List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
-          (code, BaseData.to_week_derived_data raw_data_list))
+          ( code
+          , BaseData.to_week_derived_data raw_data_list
+              (get_zz800_raw_data_list codes_and_raw_data_list) ))
     in
     store db ~dwm:`WEEK codes_and_derived_data_list
 
   let store_month_data db codes_and_raw_data_list =
     let codes_and_derived_data_list =
       List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
-          (code, BaseData.to_month_derived_data raw_data_list))
+          ( code
+          , BaseData.to_month_derived_data raw_data_list
+              (get_zz800_raw_data_list codes_and_raw_data_list) ))
     in
     store db ~dwm:`MONTH codes_and_derived_data_list
 
   let to_cursormap codes_and_raw_data_list =
     let codes_and_derived_data_list =
       List.map (unpack codes_and_raw_data_list) ~f:(fun (code, raw_data_list) ->
-          (code, BaseData.to_day_derived_data raw_data_list))
+          ( code
+          , BaseData.to_day_derived_data raw_data_list
+              (get_zz800_raw_data_list codes_and_raw_data_list) ))
     in
     let module C = L1.Cursor.Data_cursor in
     Map.of_alist_reduce

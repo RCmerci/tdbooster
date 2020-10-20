@@ -33,6 +33,10 @@ type derived_data_elem =
   ; rsi12 : float
   ; rsi24 : float
   ; kdj933 : float * float * float
+  ; rel5 : float
+  ; rel20 : float
+  ; rel60 : float
+  ; rel120 : float
   }
 
 type derived_data = derived_data_elem array
