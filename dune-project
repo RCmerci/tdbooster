@@ -23,6 +23,7 @@
   yojson
   sqlite3
   lwt
+  lwt_ssl
   cohttp-lwt-unix
   shexp)
   (synopsis "Tdbooster"))
