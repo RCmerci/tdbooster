@@ -42,6 +42,7 @@ jobs:
           path: _build/default/tdbooster.exe
 
   run:
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python
