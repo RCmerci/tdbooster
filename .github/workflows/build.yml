@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: build
+name: build-and-run
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
@@ -38,4 +38,24 @@ jobs:
       - name: upload-bin
         uses: actions/upload-artifact@v2.2.0
         with:
+          name: tdbooster.exe
           path: _build/default/tdbooster.exe
+
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2.1.4
+        with:
+          python-version: 3.x
+
+      - name: install python dependencies
+        run: pip install pandas baostock
+          
+      - name: download-bin
+        uses: actions/download-artifact@v2.0.5
+        with:
+          name: tdbooster.exe
+
+      - name: run
+        run: ./tdbooster.exe -r -o /datadir -f sh.600585
