@@ -59,4 +59,6 @@ jobs:
           name: tdbooster.exe
 
       - name: run
-        run: ./tdbooster.exe -r -o /datadir -f sh.600585
+        run: |
+          chmod +x ./tdbooster.exe
+          ./tdbooster.exe -r -o /datadir -f sh.600585
