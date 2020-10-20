@@ -7,8 +7,7 @@ let ma_all_days n (closing_data_list : float list) : float list =
   List.fold ~init:[] closing_data_list ~f:(fun r a ->
       if Queue.length q >= n then Queue.dequeue q |> ignore;
       Queue.enqueue q a;
-      Queue.sum (module Float) q ~f:(fun i -> i)
-      /. float_of_int (Queue.length q)
+      (Queue.sum (module Float) q ~f:ident /. float_of_int (Queue.length q))
       :: r)
   |> List.rev
 

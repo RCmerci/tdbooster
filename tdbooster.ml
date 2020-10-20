@@ -28,13 +28,6 @@ let marketinfo config_dir =
   ; { title = "CL/GC"; data = info.cl_div_gc }
   ]
 
-let backtest code strategy rawdata =
-  let module S = Exec.Executor.Make (Strategy.Medium_term) in
-  let exec_t = Option.value_exn (S.create rawdata) in
-  S.exec_sequence strategy exec_t
-  |> Exec.Executor.to_output code
-  |> Exec.Output.to_yojson
-
 let f codes output_dir refresh_data stats backtest =
   let () =
     let open L2.Data.Store in

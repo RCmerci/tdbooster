@@ -101,7 +101,7 @@ let%test "test-compare_above_ma20_trend_all_aux-above_ma20_trend_aux_120day" =
       (String.split_lines Testdata.Data.data)
       []
   in
-  let k = Option.value_exn (L1_deriving.Unify.unify datal) in
+  let k = Option.value_exn (L1_deriving.Unify.unify datal datal) in
   let c = C.create_exn k in
   let cm = Map.of_alist_exn (module String) [ ("xxxx", c) ] in
   let r1 =
