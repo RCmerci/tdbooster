@@ -1,4 +1,4 @@
-open Core
+open Std
 
 let all_codes = Store.all_codes
 
