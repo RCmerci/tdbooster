@@ -137,14 +137,22 @@ end
 (* TODO: add table all_codes to reduce ~custom_codes param *)
 let all_codes = Store.all_codes
 
-type t = { db : Sqlite3.db }
+type t =
+  { db : Sqlite3.db
+  ; dwm : [ `DAY | `WEEK | `MONTH ]
+  ; custom_codes : string list
+  }
 
-let search t ~dwm ~(custom_codes : string list) (cond : Condition.t) =
+let create ~config_dir ~dwm ~custom_codes =
+  let db = Store.db_open ~config_dir in
+  { db; dwm; custom_codes }
+
+let search t (cond : Condition.t) =
   let where_clause = Condition.to_clause cond in
-  List.filter (all_codes ~custom_codes) ~f:(fun code ->
+  List.filter (all_codes ~custom_codes:t.custom_codes) ~f:(fun code ->
       let count_sql =
         Printf.sprintf "SELECT COUNT(date) FROM %s %s;"
-          (Store.DerivedData.tablename ~dwm code)
+          (Store.DerivedData.tablename ~dwm:t.dwm code)
           where_clause
       in
       let found = ref false in

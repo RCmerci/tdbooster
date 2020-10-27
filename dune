@@ -1,5 +1,6 @@
 (executable
  (name        tdbooster)
  (public_name tdbooster)
+ (package     tdbooster)
  (libraries   core ppx_deriving_yojson.runtime score l3 l2)
  (preprocess (pps ppx_jane ppx_deriving_yojson)))
