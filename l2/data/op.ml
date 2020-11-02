@@ -147,9 +147,13 @@ let create ~config_dir ~dwm ~custom_codes =
   let db = Store.db_open ~config_dir in
   { db; dwm; custom_codes }
 
-let search t (cond : Condition.t) =
+(** use [codes] instead of all_codes in db if [codes] provided *)
+let search t ?codes (cond : Condition.t) =
   let where_clause = Condition.to_clause cond in
-  List.filter (all_codes ~custom_codes:t.custom_codes) ~f:(fun code ->
+  let allcodes =
+    Option.value codes ~default:(all_codes ~custom_codes:t.custom_codes)
+  in
+  List.filter allcodes ~f:(fun code ->
       let count_sql =
         Printf.sprintf "SELECT COUNT(date) FROM %s %s;"
           (Store.DerivedData.tablename ~dwm:t.dwm code)

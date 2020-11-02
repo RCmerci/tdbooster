@@ -153,10 +153,10 @@ module DerivedData : DataQuerySig with type r = Type.derived_data_map = struct
     to_float r.(13) >>= fun rsi6 ->
     to_float r.(14) >>= fun rsi12 ->
     to_float r.(15) >>= fun rsi24 ->
-    to_float r.(19) >>= fun rel5 ->
-    to_float r.(20) >>= fun rel20 ->
-    to_float r.(21) >>= fun rel60 ->
-    to_float r.(22) >>= fun rel120 ->
+    to_int r.(19) >>= fun rel5 ->
+    to_int r.(20) >>= fun rel20 ->
+    to_int r.(21) >>= fun rel60 ->
+    to_int r.(22) >>= fun rel120 ->
     let kdj933_1 = Option.value (to_float r.(16)) ~default:0. in
     let kdj933_2 = Option.value (to_float r.(17)) ~default:0. in
     let kdj933_3 = Option.value (to_float r.(18)) ~default:0. in

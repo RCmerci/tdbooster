@@ -20,10 +20,10 @@ module Derived_data = struct
     ; rsi12 : float
     ; rsi24 : float
     ; kdj933 : float * float * float
-    ; rel5 : float
-    ; rel20 : float
-    ; rel60 : float
-    ; rel120 : float
+    ; rel5 : int
+    ; rel20 : int
+    ; rel60 : int
+    ; rel120 : int
     }
   [@@deriving show]
 

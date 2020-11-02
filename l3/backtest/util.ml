@@ -62,7 +62,8 @@ type txn_phase =
 
 type current_txn =
   { (* code, (date, buy_price, buymoney) *)
-    holding_codes : (string * (Date.t * float * float)) list
+    holding_code : string option
+  ; transactions : (string * (Date.t * float * float)) list
   ; phase : txn_phase
   ; trend_ever_gt_90 : bool
   ; trend_ever_gt_80 : bool
@@ -72,7 +73,11 @@ type current_txn =
 [@@deriving sexp_of]
 
 type state =
-  { db : L2.Data.Query.IndustryTrendData.t
+  { config_dir : string
+  ; op_day : L2.Data.Op.t
+  ; op_week : L2.Data.Op.t
+  ; op_month : L2.Data.Op.t
+  ; db : L2.Data.Query.IndustryTrendData.t
   ; db2 : L2.Data.Query.BaseData.t
   ; db3 : L2.Data.Query.DerivedData.t
   ; today : Date.t
@@ -144,6 +149,8 @@ let lastday_deriveddata state code =
       ~selector:(L2.Data.Query.Selector.BetweenEE (lastday, lastday))
   in
   let last_deriveddata' = Map.find_exn last_deriveddata code in
+  if Array.length last_deriveddata' = 0 then
+    Format.printf "code: %s, date: %a" code Date.pp lastday;
   last_deriveddata'.(0)
 
 let today_basedata state code =
@@ -176,7 +183,7 @@ let compute_current_txn current_money current_txn
     (sell_prices : (string, float) Hashtbl.t) =
   let open Option.Monad_infix in
   let txn_money =
-    List.map current_txn.holding_codes
+    List.map current_txn.transactions
       ~f:(fun (code, (_, buy_price, buy_money)) ->
         Hashtbl.find sell_prices code >>= fun sell_price ->
         Some (sell_price /. buy_price *. buy_money))
@@ -186,8 +193,7 @@ let compute_current_txn current_money current_txn
   Money.left current_money +. txn_money
 
 let add_txn_history state current_txn sell_date sell_price reason =
-  List.iter current_txn.holding_codes
-    ~f:(fun (code, (buy_date, buy_price, _)) ->
+  List.iter current_txn.transactions ~f:(fun (code, (buy_date, buy_price, _)) ->
       match Hashtbl.find state.txn_history code with
       | Some l ->
         Hashtbl.set state.txn_history ~key:code
@@ -199,12 +205,12 @@ let add_txn_history state current_txn sell_date sell_price reason =
 let add_txn_history_one state (one_holding : string * (Date.t * float * float))
     sell_date sell_price =
   add_txn_history state
-    { state.current_txn with holding_codes = [ one_holding ] }
+    { state.current_txn with transactions = [ one_holding ] }
     sell_date sell_price
 
 let highest_holding current_txn =
   let sorted =
-    List.sort current_txn.holding_codes
+    List.sort current_txn.transactions
       ~compare:(fun (_, (_, buy_price1, _)) (_, (_, buy_price2, _)) ->
         Float.compare buy_price2 buy_price1)
   in
@@ -212,7 +218,7 @@ let highest_holding current_txn =
 
 let lowest_holding current_txn =
   let sorted =
-    List.sort current_txn.holding_codes
+    List.sort current_txn.transactions
       ~compare:(fun (_, (_, buy_price1, _)) (_, (_, buy_price2, _)) ->
         Float.compare buy_price1 buy_price2)
   in
@@ -220,203 +226,203 @@ let lowest_holding current_txn =
 
 let remove_highest_holding current_txn =
   let sorted =
-    List.sort current_txn.holding_codes
+    List.sort current_txn.transactions
       ~compare:(fun (_, (_, buy_price1, _)) (_, (_, buy_price2, _)) ->
         Float.compare buy_price2 buy_price1)
   in
   Option.value_map (List.tl sorted) ~default:current_txn ~f:(fun e ->
-      { current_txn with holding_codes = e })
+      { current_txn with transactions = e })
 
-let eval state test_code =
-  let lastday_above_ma20_percent = lastday_trend state in
-  match state.current_txn.phase with
-  | Phase0 ->
-    if lastday_above_ma20_percent < 25. then
-      let part, money' = Money.buy state.money in
-      let holding =
-        (test_code, (state.today, close state test_code, part))
-        :: state.current_txn.holding_codes
-      in
-      let phase = Phase1 in
-      { state with
-        current_txn =
-          { holding_codes = holding
-          ; phase
-          ; trend_ever_gt_90 = false
-          ; trend_ever_gt_80 = false
-          ; trend_ever_gt_50 = false
-          ; ever_sold_highestpart = false
-          }
-      ; money = money'
-      ; today = nextday state
-      }
-    else
-      { state with today = nextday state }
-  | Phase1 ->
-    if lastday_above_ma20_percent > 35. then
-      { state with
-        current_txn = { state.current_txn with phase = Phase4 }
-      ; today = nextday state
-      }
-    else if lastday_above_ma20_percent < 20. then
-      let part, money' = Money.buy state.money in
-      let holding =
-        (test_code, (state.today, close state test_code, part))
-        :: state.current_txn.holding_codes
-      in
-      let phase = Phase2 in
-      { state with
-        current_txn =
-          { holding_codes = holding
-          ; phase
-          ; trend_ever_gt_90 = false
-          ; trend_ever_gt_80 = false
-          ; trend_ever_gt_50 = false
-          ; ever_sold_highestpart = false
-          }
-      ; money = money'
-      ; today = nextday state
-      }
-    else
-      { state with today = nextday state }
-  | Phase2 ->
-    if lastday_above_ma20_percent > 35. then
-      { state with
-        current_txn = { state.current_txn with phase = Phase4 }
-      ; today = nextday state
-      }
-    else if lastday_above_ma20_percent < 15. then
-      let part, money' = Money.buy state.money in
-      let holding =
-        (test_code, (state.today, close state test_code, part))
-        :: state.current_txn.holding_codes
-      in
-      let phase = Phase3 in
-      { state with
-        current_txn =
-          { holding_codes = holding
-          ; phase
-          ; trend_ever_gt_90 = false
-          ; trend_ever_gt_80 = false
-          ; trend_ever_gt_50 = false
-          ; ever_sold_highestpart = false
-          }
-      ; money = money'
-      ; today = nextday state
-      }
-    else
-      { state with today = nextday state }
-  | Phase3 ->
-    if lastday_above_ma20_percent > 35. then
-      { state with
-        current_txn = { state.current_txn with phase = Phase4 }
-      ; today = nextday state
-      }
-    else if lastday_above_ma20_percent < 10. then
-      let part, money' = Money.buy state.money in
-      let holding =
-        match part with
-        | 0. -> state.current_txn.holding_codes
-        | _ ->
-          (test_code, (state.today, close state test_code, part))
-          :: state.current_txn.holding_codes
-      in
-      let phase = Phase3 in
-      { state with
-        current_txn =
-          { holding_codes = holding
-          ; phase
-          ; trend_ever_gt_90 = false
-          ; trend_ever_gt_80 = false
-          ; trend_ever_gt_50 = false
-          ; ever_sold_highestpart = false
-          }
-      ; money = money'
-      ; today = nextday state
-      }
-    else
-      { state with today = nextday state }
-  | Phase4 ->
-    let sell_price = close state test_code in
-    let money' =
-      compute_current_txn state.money state.current_txn
-        (Hashtbl.of_alist_exn (module String) [ (test_code, sell_price) ])
-    in
-    let money = Money.create money' in
-    let new_current_txn =
-      { holding_codes = []
-      ; phase = Phase0
-      ; trend_ever_gt_90 = false
-      ; trend_ever_gt_80 = false
-      ; trend_ever_gt_50 = false
-      ; ever_sold_highestpart = false
-      }
-    in
-    if lastday_above_ma20_percent > 90. then
-      let _ =
-        add_txn_history state state.current_txn state.today sell_price "1"
-      in
-
-      let _ = Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n" in
-      { state with current_txn = new_current_txn; today = nextday state; money }
-    else if lastday_above_ma20_percent > 80. then
-      let current_txn =
-        { state.current_txn with
-          trend_ever_gt_80 = true
-        ; trend_ever_gt_50 = true
-        }
-      in
-      { state with current_txn; today = nextday state }
-    else if state.current_txn.trend_ever_gt_80 then
-      let _ =
-        add_txn_history state state.current_txn state.today sell_price "2"
-      in
-      let _ = Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n" in
-      { state with current_txn = new_current_txn; today = nextday state; money }
-    else if lastday_above_ma20_percent > 50. then
-      let current_txn = { state.current_txn with trend_ever_gt_50 = true } in
-      { state with current_txn; today = nextday state }
-    else if state.current_txn.trend_ever_gt_50 then
-      let last2day_above_ma20_percent =
-        lastday_trend { state with today = lastday state }
-      in
-      let last3day_above_ma20_percent =
-        lastday_trend
-          { state with today = lastday { state with today = lastday state } }
-      in
-      if
-        last2day_above_ma20_percent < last3day_above_ma20_percent
-        && lastday_above_ma20_percent < last2day_above_ma20_percent
-      then
-        let _ =
-          add_txn_history state state.current_txn state.today sell_price "3"
-        in
-        let _ =
-          Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n"
-        in
-        { state with
-          current_txn = new_current_txn
-        ; today = nextday state
-        ; money
-        }
-      else
-        { state with today = nextday state }
-    else
-      let _, buy_price, _ =
-        List.Assoc.find_exn state.current_txn.holding_codes ~equal:String.equal
-          test_code
-      in
-      if buy_price > sell_price then
-        let _ =
-          add_txn_history state state.current_txn state.today sell_price "4"
-        in
-        let _ =
-          Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n"
-        in
-        { state with
-          current_txn = new_current_txn
-        ; today = nextday state
-        ; money
-        }
-      else
-        { state with today = nextday state }
+(* let eval state test_code =
+ *   let lastday_above_ma20_percent = lastday_trend state in
+ *   match state.current_txn.phase with
+ *   | Phase0 ->
+ *     if lastday_above_ma20_percent < 25. then
+ *       let part, money' = Money.buy state.money in
+ *       let holding =
+ *         (test_code, (state.today, close state test_code, part))
+ *         :: state.current_txn.transactions
+ *       in
+ *       let phase = Phase1 in
+ *       { state with
+ *         current_txn =
+ *           { transactions = holding
+ *           ; phase
+ *           ; trend_ever_gt_90 = false
+ *           ; trend_ever_gt_80 = false
+ *           ; trend_ever_gt_50 = false
+ *           ; ever_sold_highestpart = false
+ *           }
+ *       ; money = money'
+ *       ; today = nextday state
+ *       }
+ *     else
+ *       { state with today = nextday state }
+ *   | Phase1 ->
+ *     if lastday_above_ma20_percent > 35. then
+ *       { state with
+ *         current_txn = { state.current_txn with phase = Phase4 }
+ *       ; today = nextday state
+ *       }
+ *     else if lastday_above_ma20_percent < 20. then
+ *       let part, money' = Money.buy state.money in
+ *       let holding =
+ *         (test_code, (state.today, close state test_code, part))
+ *         :: state.current_txn.transactions
+ *       in
+ *       let phase = Phase2 in
+ *       { state with
+ *         current_txn =
+ *           { holding_codes = holding
+ *           ; phase
+ *           ; trend_ever_gt_90 = false
+ *           ; trend_ever_gt_80 = false
+ *           ; trend_ever_gt_50 = false
+ *           ; ever_sold_highestpart = false
+ *           }
+ *       ; money = money'
+ *       ; today = nextday state
+ *       }
+ *     else
+ *       { state with today = nextday state }
+ *   | Phase2 ->
+ *     if lastday_above_ma20_percent > 35. then
+ *       { state with
+ *         current_txn = { state.current_txn with phase = Phase4 }
+ *       ; today = nextday state
+ *       }
+ *     else if lastday_above_ma20_percent < 15. then
+ *       let part, money' = Money.buy state.money in
+ *       let holding =
+ *         (test_code, (state.today, close state test_code, part))
+ *         :: state.current_txn.transactions
+ *       in
+ *       let phase = Phase3 in
+ *       { state with
+ *         current_txn =
+ *           { holding_codes = holding
+ *           ; phase
+ *           ; trend_ever_gt_90 = false
+ *           ; trend_ever_gt_80 = false
+ *           ; trend_ever_gt_50 = false
+ *           ; ever_sold_highestpart = false
+ *           }
+ *       ; money = money'
+ *       ; today = nextday state
+ *       }
+ *     else
+ *       { state with today = nextday state }
+ *   | Phase3 ->
+ *     if lastday_above_ma20_percent > 35. then
+ *       { state with
+ *         current_txn = { state.current_txn with phase = Phase4 }
+ *       ; today = nextday state
+ *       }
+ *     else if lastday_above_ma20_percent < 10. then
+ *       let part, money' = Money.buy state.money in
+ *       let holding =
+ *         match part with
+ *         | 0. -> state.current_txn.transactions
+ *         | _ ->
+ *           (test_code, (state.today, close state test_code, part))
+ *           :: state.current_txn.transactions
+ *       in
+ *       let phase = Phase3 in
+ *       { state with
+ *         current_txn =
+ *           { holding_codes = holding
+ *           ; phase
+ *           ; trend_ever_gt_90 = false
+ *           ; trend_ever_gt_80 = false
+ *           ; trend_ever_gt_50 = false
+ *           ; ever_sold_highestpart = false
+ *           }
+ *       ; money = money'
+ *       ; today = nextday state
+ *       }
+ *     else
+ *       { state with today = nextday state }
+ *   | Phase4 ->
+ *     let sell_price = close state test_code in
+ *     let money' =
+ *       compute_current_txn state.money state.current_txn
+ *         (Hashtbl.of_alist_exn (module String) [ (test_code, sell_price) ])
+ *     in
+ *     let money = Money.create money' in
+ *     let new_current_txn =
+ *       { holding_codes = []
+ *       ; phase = Phase0
+ *       ; trend_ever_gt_90 = false
+ *       ; trend_ever_gt_80 = false
+ *       ; trend_ever_gt_50 = false
+ *       ; ever_sold_highestpart = false
+ *       }
+ *     in
+ *     if lastday_above_ma20_percent > 90. then
+ *       let _ =
+ *         add_txn_history state state.current_txn state.today sell_price "1"
+ *       in
+ *
+ *       let _ = Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n" in
+ *       { state with current_txn = new_current_txn; today = nextday state; money }
+ *     else if lastday_above_ma20_percent > 80. then
+ *       let current_txn =
+ *         { state.current_txn with
+ *           trend_ever_gt_80 = true
+ *         ; trend_ever_gt_50 = true
+ *         }
+ *       in
+ *       { state with current_txn; today = nextday state }
+ *     else if state.current_txn.trend_ever_gt_80 then
+ *       let _ =
+ *         add_txn_history state state.current_txn state.today sell_price "2"
+ *       in
+ *       let _ = Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n" in
+ *       { state with current_txn = new_current_txn; today = nextday state; money }
+ *     else if lastday_above_ma20_percent > 50. then
+ *       let current_txn = { state.current_txn with trend_ever_gt_50 = true } in
+ *       { state with current_txn; today = nextday state }
+ *     else if state.current_txn.trend_ever_gt_50 then
+ *       let last2day_above_ma20_percent =
+ *         lastday_trend { state with today = lastday state }
+ *       in
+ *       let last3day_above_ma20_percent =
+ *         lastday_trend
+ *           { state with today = lastday { state with today = lastday state } }
+ *       in
+ *       if
+ *         last2day_above_ma20_percent < last3day_above_ma20_percent
+ *         && lastday_above_ma20_percent < last2day_above_ma20_percent
+ *       then
+ *         let _ =
+ *           add_txn_history state state.current_txn state.today sell_price "3"
+ *         in
+ *         let _ =
+ *           Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n"
+ *         in
+ *         { state with
+ *           current_txn = new_current_txn
+ *         ; today = nextday state
+ *         ; money
+ *         }
+ *       else
+ *         { state with today = nextday state }
+ *     else
+ *       let _, buy_price, _ =
+ *         List.Assoc.find_exn state.current_txn.transactions ~equal:String.equal
+ *           test_code
+ *       in
+ *       if buy_price > sell_price then
+ *         let _ =
+ *           add_txn_history state state.current_txn state.today sell_price "4"
+ *         in
+ *         let _ =
+ *           Sexp.to_string (Money.sexp_of_t money) |> Printf.printf "%s\n"
+ *         in
+ *         { state with
+ *           current_txn = new_current_txn
+ *         ; today = nextday state
+ *         ; money
+ *         }
+ *       else
+ *         { state with today = nextday state } *)

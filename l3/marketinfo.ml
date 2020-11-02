@@ -66,7 +66,7 @@ module Basedata_info = struct
                   Debug.eprintf "left:%s" (Date.to_string d);
                   None
                 | `Right _ ->
-                  Debug.eprintf "right:%s" (Date.to_string d);
+                  Debug.eprintf "right:%s, code:%s" (Date.to_string d) code;
                   None)
             |> Hashtbl.to_alist
             |> List.sort ~compare:(fun (d1, _) (d2, _) -> Date.compare d1 d2)

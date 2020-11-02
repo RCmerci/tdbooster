@@ -254,9 +254,8 @@ module DerivedData = struct
          ^ "ema120 FLOAT NULL," ^ "dif FLOAT NULL," ^ "dea FLOAT NULL,"
          ^ "macd FLOAT NULL," ^ "bias24 FLOAT NULL," ^ "rsi6 FLOAT NULL,"
          ^ "rsi12 FLOAT NULL," ^ "rsi24 FLOAT NULL," ^ "kdj933_1 FLOAT NULL,"
-         ^ "kdj933_2 FLOAT NULL," ^ "kdj933_3 FLOAT NULL," ^ "rel5 FLOAT NULL,"
-         ^ "rel20 FLOAT NULL," ^ "rel60 FLOAT NULL," ^ "rel120 FLOAT NULL"
-         ^ ");" ));
+         ^ "kdj933_2 FLOAT NULL," ^ "kdj933_3 FLOAT NULL," ^ "rel5 INT NULL,"
+         ^ "rel20 INT NULL," ^ "rel60 INT NULL," ^ "rel120 INT NULL" ^ ");" ));
     ignore
       (exec db ("CREATE UNIQUE INDEX index_date on " ^ tablename ^ "(date);"))
 
@@ -297,10 +296,14 @@ module DerivedData = struct
           |> Rc.check;
           bind insert_stmt 19 (Sqlite3.Data.FLOAT (Tuple3.get3 e.kdj933))
           |> Rc.check;
-          bind insert_stmt 20 (Sqlite3.Data.FLOAT e.rel5) |> Rc.check;
-          bind insert_stmt 21 (Sqlite3.Data.FLOAT e.rel20) |> Rc.check;
-          bind insert_stmt 22 (Sqlite3.Data.FLOAT e.rel60) |> Rc.check;
-          bind insert_stmt 23 (Sqlite3.Data.FLOAT e.rel120) |> Rc.check;
+          bind insert_stmt 20 (Sqlite3.Data.INT (Int64.of_int e.rel5))
+          |> Rc.check;
+          bind insert_stmt 21 (Sqlite3.Data.INT (Int64.of_int e.rel20))
+          |> Rc.check;
+          bind insert_stmt 22 (Sqlite3.Data.INT (Int64.of_int e.rel60))
+          |> Rc.check;
+          bind insert_stmt 23 (Sqlite3.Data.INT (Int64.of_int e.rel120))
+          |> Rc.check;
           step insert_stmt |> Rc.check)
     in
     wrap_txn db f

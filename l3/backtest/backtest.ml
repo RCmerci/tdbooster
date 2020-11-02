@@ -3,14 +3,14 @@ module Util = Util
 module Strategy2 = Strategy2
 open Util
 
-let rec run_aux state finish_day test_code =
-  let nextstate = Strategy2.eval state test_code in
+let rec run_aux state finish_day custom_codes =
+  let nextstate = Strategy2.eval state custom_codes in
   if nextstate.today > finish_day then
     nextstate
   else
-    run_aux nextstate finish_day test_code
+    run_aux nextstate finish_day custom_codes
 
-let run config_dir init_day finish_day test_code =
+let run config_dir init_day finish_day custom_codes =
   let basedata_db = L2.Data.Query.BaseData.create config_dir in
   let industrytrend_db = L2.Data.Query.IndustryTrendData.create config_dir in
   let deriveddata_db = L2.Data.Query.DerivedData.create config_dir in
@@ -24,13 +24,18 @@ let run config_dir init_day finish_day test_code =
     |> Set.of_array (module Date)
   in
   let state =
-    { db = industrytrend_db
+    { config_dir
+    ; op_day = L2.Data.Op.create ~config_dir ~dwm:`DAY ~custom_codes
+    ; op_week = L2.Data.Op.create ~config_dir ~dwm:`WEEK ~custom_codes
+    ; op_month = L2.Data.Op.create ~config_dir ~dwm:`MONTH ~custom_codes
+    ; db = industrytrend_db
     ; db2 = basedata_db
     ; db3 = deriveddata_db
     ; today = init_day
     ; txn_history = Hashtbl.create (module String)
     ; current_txn =
-        { holding_codes = []
+        { holding_code = None
+        ; transactions = []
         ; phase = Phase0
         ; trend_ever_gt_90 = false
         ; trend_ever_gt_80 = false
@@ -42,4 +47,4 @@ let run config_dir init_day finish_day test_code =
     }
   in
   let next_trading_day = nextday state in
-  run_aux { state with today = next_trading_day } finish_day test_code
+  run_aux { state with today = next_trading_day } finish_day custom_codes

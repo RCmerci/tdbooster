@@ -1,7 +1,7 @@
 open Std
 
 let rel_all_days n (percentchange_data_list : float list)
-    (zz800_percentchange_data_list : float list) : float list =
+    (zz800_percentchange_data_list : float list) : int list =
   let sub_length =
     List.length percentchange_data_list
     - List.length zz800_percentchange_data_list
@@ -18,15 +18,21 @@ let rel_all_days n (percentchange_data_list : float list)
   List.fold2_exn ~init:[] percentchange_data_list zz800_percentchange_data_list'
     ~f:(fun r e1 e2 ->
       if Queue.length q >= n then Queue.dequeue q |> ignore;
-      Queue.enqueue q (e1 -. e2);
-      (100. *. Queue.sum (module Float) q ~f:ident) :: r)
+      Queue.enqueue q
+        ( if e1 > e2 then
+          1
+        else if e1 = e2 then
+          0
+        else
+          -1 );
+      Queue.sum (module Int) q ~f:ident :: r)
   |> List.rev
 
 let%test "test-rel" =
-  rel_all_days 3 [ 1.; 2.; 3.; 4. ] [ 0.; 1.; 2.; 3.; 4. ] = [ 0.; 0.; 0.; 0. ]
+  rel_all_days 3 [ 1.; 2.; 3.; 4. ] [ 0.; 1.; 2.; 3.; 4. ] = [ 0; 0; 0; 0 ]
 
 let rel n (data_list : L1_loader.Type.raw_data)
-    (zz800_data_list : L1_loader.Type.raw_data) : (Date.t * float) list =
+    (zz800_data_list : L1_loader.Type.raw_data) : (Date.t * int) list =
   let percentchange_data_list = L1_loader.Type.percent_change_col data_list in
   let percentchange_zz800_data_list =
     L1_loader.Type.percent_change_col zz800_data_list
