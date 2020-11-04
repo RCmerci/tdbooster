@@ -9,22 +9,17 @@ let eval (state : state) custom_codes =
     let filtered_codes =
       L2.Data.Op.(
         search state.op_day ~codes:custom_codes
-          Condition.(LE (DateBetweenEE (lastday, lastday), Rsi6 20.)))
+          Condition.(
+            AND
+              [ LE (DateBetweenEE (lastday, lastday), Rsi6 20.)
+              ; GT (DateBetweenEE (lastday, lastday), Rel20 0.)
+              ; LT (DateBetweenEE (lastday, lastday), Rel120 (-10.))
+              ]))
     in
-    let filtered_codes2 =
-      L2.Data.Op.(
-        search state.op_day ~codes:filtered_codes
-          Condition.(GT (DateBetweenEE (lastday, lastday), Rel20 0.)))
-    in
-    let filtered_codes3 =
-      L2.Data.Op.(
-        search state.op_day ~codes:filtered_codes2
-          Condition.(GT (DateBetweenEE (lastday, lastday), Rel120 0.)))
-    in
-    if List.length filtered_codes3 = 0 then
+    if List.length filtered_codes = 0 then
       go_on state
     else
-      let test_code = List.hd_exn filtered_codes2 in
+      let test_code = List.hd_exn filtered_codes in
       let today_basedata = today_basedata state test_code in
       let today_up_less_3 = today_basedata.percent_change < 0.03 in
       if lastday_above_ma20_percent < 25. && today_up_less_3 then

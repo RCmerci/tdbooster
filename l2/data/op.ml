@@ -35,11 +35,16 @@ module Condition = struct
     | DateBetweenET of (Date.t * Date.t)
     | DateBetweenTT of (Date.t * Date.t)
 
-  type t =
-    | LT of (dateSelector * index)
-    | LE of (dateSelector * index)
-    | GT of (dateSelector * index)
-    | GE of (dateSelector * index)
+  type simple = private Simple_t_not_used
+
+  type combine = private Combine_t_not_used
+
+  type 'a t =
+    | AND : simple t list -> combine t
+    | LT : (dateSelector * index) -> simple t
+    | LE : (dateSelector * index) -> simple t
+    | GT : (dateSelector * index) -> simple t
+    | GE : (dateSelector * index) -> simple t
 
   let index_to_name_string i =
     match i with
@@ -114,24 +119,30 @@ module Condition = struct
       Printf.sprintf "date(date) > date('%s') and date(date) < date('%s')"
         (Date.to_string date1) (Date.to_string date2)
 
-  let to_clause t =
+  (* TODO: optimize output-sql *)
+  let rec to_clause_aux : type a. a t -> string =
+   fun t ->
     match t with
+    | AND ts ->
+      List.map ts ~f:(fun t -> to_clause_aux t) |> String.concat ~sep:" and "
     | LT (d, i) ->
       let date_clause = dateSelector_to_string d in
-      Printf.sprintf "WHERE %s and %s < %f" date_clause (index_to_name_string i)
+      Printf.sprintf "%s and %s < %f" date_clause (index_to_name_string i)
         (index_value i)
     | LE (d, i) ->
       let date_clause = dateSelector_to_string d in
-      Printf.sprintf "WHERE %s and %s <= %f" date_clause
-        (index_to_name_string i) (index_value i)
+      Printf.sprintf "%s and %s <= %f" date_clause (index_to_name_string i)
+        (index_value i)
     | GT (d, i) ->
       let date_clause = dateSelector_to_string d in
-      Printf.sprintf "WHERE %s and %s > %f" date_clause (index_to_name_string i)
+      Printf.sprintf "%s and %s > %f" date_clause (index_to_name_string i)
         (index_value i)
     | GE (d, i) ->
       let date_clause = dateSelector_to_string d in
-      Printf.sprintf "WHERE %s and %s >= %f" date_clause
-        (index_to_name_string i) (index_value i)
+      Printf.sprintf "%s and %s >= %f" date_clause (index_to_name_string i)
+        (index_value i)
+
+  let to_clause : type a. a t -> string = fun t -> "WHERE " ^ to_clause_aux t
 end
 
 (* TODO: add table all_codes to reduce ~custom_codes param *)
@@ -148,7 +159,7 @@ let create ~config_dir ~dwm ~custom_codes =
   { db; dwm; custom_codes }
 
 (** use [codes] instead of all_codes in db if [codes] provided *)
-let search t ?codes (cond : Condition.t) =
+let search t ?codes cond =
   let where_clause = Condition.to_clause cond in
   let allcodes =
     Option.value codes ~default:(all_codes ~custom_codes:t.custom_codes)
