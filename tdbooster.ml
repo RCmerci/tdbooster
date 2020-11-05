@@ -30,43 +30,10 @@ let marketinfo config_dir =
 
 let f codes output_dir refresh_data stats backtest =
   let () =
-    let open L2.Data.Store in
-    if refresh_data then (
-      let () =
-        ReadCodesBaseData.fetch_all_codes_base_data ~config_dir:output_dir
-          ~custom_codes:codes
-      in
-      db_delete ~config_dir:output_dir;
-      let db = db_open ~config_dir:output_dir in
-      let raw_data =
-        ReadCodesBaseData.read_all_codes_base_data ~config_dir:output_dir
-          ~custom_codes:codes
-      in
-      BaseData.store_day_data db raw_data;
-      BaseData.store_week_data db raw_data;
-      BaseData.store_month_data db raw_data;
-      DerivedData.store_day_data db raw_data;
-      DerivedData.store_week_data db raw_data;
-      DerivedData.store_month_data db raw_data;
-      IndustryTrendData.store_day_data db raw_data;
-      IndustryTrendData.store_week_data db raw_data;
-      IndustryTrendData.store_month_data db raw_data
-    ) else
-      let () = db_delete ~config_dir:output_dir in
-      let db = db_open ~config_dir:output_dir in
-      let raw_data =
-        ReadCodesBaseData.read_all_codes_base_data ~config_dir:output_dir
-          ~custom_codes:codes
-      in
-      BaseData.store_day_data db raw_data;
-      BaseData.store_week_data db raw_data;
-      BaseData.store_month_data db raw_data;
-      DerivedData.store_day_data db raw_data;
-      DerivedData.store_week_data db raw_data;
-      DerivedData.store_month_data db raw_data;
-      IndustryTrendData.store_day_data db raw_data;
-      IndustryTrendData.store_week_data db raw_data;
-      IndustryTrendData.store_month_data db raw_data
+    if refresh_data then
+      L3.Op.refresh_data ~config_dir:output_dir ~custom_codes:codes
+    else
+      L3.Op.store_data ~config_dir:output_dir ~custom_codes:codes
   in
   let js =
     if List.length backtest > 0 then
