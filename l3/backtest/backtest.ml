@@ -25,6 +25,7 @@ let run config_dir init_day finish_day custom_codes =
   in
   let state =
     { config_dir
+    ; rawdb = L2.Data.Store.db_open ~config_dir
     ; op_day = L2.Data.Op.create ~config_dir ~dwm:`DAY ~custom_codes
     ; op_week = L2.Data.Op.create ~config_dir ~dwm:`WEEK ~custom_codes
     ; op_month = L2.Data.Op.create ~config_dir ~dwm:`MONTH ~custom_codes

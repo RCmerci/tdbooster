@@ -77,6 +77,7 @@ type state =
   ; op_day : L2.Data.Op.t
   ; op_week : L2.Data.Op.t
   ; op_month : L2.Data.Op.t
+  ; rawdb : Sqlite3.db
   ; db : L2.Data.Query.IndustryTrendData.t
   ; db2 : L2.Data.Query.BaseData.t
   ; db3 : L2.Data.Query.DerivedData.t

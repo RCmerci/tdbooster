@@ -22,3 +22,19 @@ let refresh_data ~config_dir ~custom_codes =
   let open L2.Data.Store in
   ReadCodesBaseData.fetch_all_codes_base_data ~config_dir ~custom_codes;
   store_data ~config_dir ~custom_codes
+
+module type SeatchS = sig
+  type t
+
+  val create : config_dir:string -> t
+
+  val search : string list -> Date.t -> string list
+end
+
+let search ?date ?codes (module BacktestStrategy : SeatchS) =
+  let date' =
+    Option.value date
+      ~default:(Date.today ~zone:(Time.Zone.of_utc_offset ~hours:8))
+  in
+  let codes' = Option.value codes ~default:L2.Data.Const.hs300 in
+  BacktestStrategy.search codes' date'

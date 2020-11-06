@@ -1,21 +1,32 @@
 open Std
 open Util
 
+type t = { db : Sqlite3.db }
+
+let create ~config_dir =
+  let db = L2.Data.Store.db_open ~config_dir in
+  { db }
+
+let of_db db = { db }
+
+let search (t : t) codes date =
+  L2.Data.Op.(
+    search
+      { db = t.db; dwm = `DAY; custom_codes = [] }
+      ~codes
+      Condition.(
+        AND
+          [ LE (DateBetweenEE (date, date), Rsi6 20.)
+          ; GT (DateBetweenEE (date, date), Rel20 0.)
+          ; LT (DateBetweenEE (date, date), Rel120 (-10.))
+          ]))
+
 let eval (state : state) custom_codes =
   let lastday = lastday state in
   let lastday_above_ma20_percent = lastday_trend state in
   match state.current_txn.phase with
   | Phase0 ->
-    let filtered_codes =
-      L2.Data.Op.(
-        search state.op_day ~codes:custom_codes
-          Condition.(
-            AND
-              [ LE (DateBetweenEE (lastday, lastday), Rsi6 20.)
-              ; GT (DateBetweenEE (lastday, lastday), Rel20 0.)
-              ; LT (DateBetweenEE (lastday, lastday), Rel120 (-10.))
-              ]))
-    in
+    let filtered_codes = search (of_db state.rawdb) custom_codes lastday in
     if List.length filtered_codes = 0 then
       go_on state
     else
