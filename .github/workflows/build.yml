@@ -63,4 +63,9 @@ jobs:
       - name: run
         run: |
           chmod +x ./tdbooster.exe
-          ./tdbooster.exe -r -o . -f sh.600585
+          ./tdbooster.exe -r -o . -f sh.600585 > output.json
+      - name: upload-bin
+        uses: actions/upload-artifact@v2.2.0
+        with:
+          name: output.json
+          path: output.json
