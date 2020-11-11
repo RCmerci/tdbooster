@@ -63,9 +63,16 @@ jobs:
       - name: run
         run: |
           chmod +x ./tdbooster.exe
-          ./tdbooster.exe -r -o . -f sh.600585 > output.json
-      - name: upload-bin
-        uses: actions/upload-artifact@v2.2.0
+          ./tdbooster.exe -r -o . -f sh.600585 > output
+          
+      - name: push file
+        uses: dmnemec/copy_file_to_another_repo_action@v1.0.4
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          name: output.json
-          path: output.json
+          source_file: 'output'
+          destination_repo: 'RCmerci/tdbooster-output'
+          user_email: 'rcmerci@gmail.com'
+          user_name: 'RCmerci'
+          commit_message: 'push by action'
+
