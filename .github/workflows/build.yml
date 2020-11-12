@@ -64,14 +64,12 @@ jobs:
         run: |
           chmod +x ./tdbooster.exe
           ./tdbooster.exe -r -o . -f sh.600585 > output
-      - name: Copy
-        uses: andstor/copycat-action@v3
+          
+      - name: sync gist
+        uses: Popsiclestick/gist-sync-action@v1.1
         with:
-          personal_token: ${{ secrets.TD }}
-          src_path: output
-          dst_path: output
-          dst_owner: RCmerci
-          dst_repo_name: tdbooster-output
-
-
-
+          auth: ${{ secrets.TD }}
+          gist_url: https://gist.github.com/RCmerci/10f9f945f225e4340e3cd31c5c051088
+          gist_title: tdbooster-output
+          gist_description: tdbooster output
+          github_file: output  
