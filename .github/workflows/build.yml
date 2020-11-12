@@ -74,6 +74,6 @@ jobs:
           cp ../output output
           git add output
           git commit -m "Automatic publish from tdbooster repo action"
-          git push https://.:${{ secrets.TD }}@github.com/RCmerci/tdbooster-output.git
+          git push https://.:${{ secrets.TD }}@github.com/RCmerci/tdbooster-output.git -v
 
 
