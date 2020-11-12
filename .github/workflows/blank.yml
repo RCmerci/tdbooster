@@ -16,20 +16,15 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - name: Commit files
-      env: 
-        SECRET: ${{ secrets.TD }}
-      run: |
-        git clone https://.:$SECRET@github.com/RCmerci/tdbooster-output.git
-        cd tdbooster-output
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        echo 111 > output
-        git add output
-        git commit -m "Add changes" -a
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.TD }}
-        branch: master
-        repository: RCmerci/tdbooster-output
+      - name: push file
+        env:
+          SECRET: ${{ secrets.TD }}
+        run: |
+          git clone https://.:$SECRET@github.com/RCmerci/tdbooster-output.git
+          git config --global user.email "rcmerci@gmail.com"
+          git config --global user.name "RCmerci"
+          cd tdbooster-output
+          echo XXX > output
+          git add output
+          git commit -m "Automatic publish from tdbooster repo action"
+          git push https://.:$SECRET@github.com/RCmerci/tdbooster-output.git -v   
