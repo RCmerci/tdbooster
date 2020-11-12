@@ -66,13 +66,12 @@ jobs:
           ./tdbooster.exe -r -o . -f sh.600585 > output
           
       - name: push file
-        uses: dmnemec/copy_file_to_another_repo_action@v1.0.4
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.TD }}
-        with:
-          source_file: 'output'
-          destination_repo: 'RCmerci/tdbooster-output'
-          user_email: 'rcmerci@gmail.com'
-          user_name: 'RCmerci'
-          commit_message: 'push by action'
+        run: |
+          git clone https://.:${{ secrets.TD }}@github.com/RCmerci/tdbooster-output.git
+          cd tdbooster-output
+          cp ../output output
+          git add output
+          git commit -m "Automatic publish from tdbooster repo action"
+          git push
+
 
