@@ -16,16 +16,14 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: push file
-        env:
-          SECRET: ${{ secrets.TD }}
+      - name: create file
         run: |
-          git clone https://.:$SECRET@github.com/RCmerci/tdbooster-output.git
-          git config --global user.email "rcmerci@gmail.com"
-          git config --global user.name "RCmerci"
-          cd tdbooster-output
           echo XXX > output
-          git add output
-          git commit -m "Automatic publish from tdbooster repo action"
-          echo $SECRET
-          git push https://.:$SECRET@github.com/RCmerci/tdbooster-output.git -v   
+      - uses: popsiclestick/gist-sync-action@v1.1.0
+        id: sync
+        with:
+          auth: ${{ secrets.TD }}
+          gist_url: https://gist.github.com/RCmerci/10f9f945f225e4340e3cd31c5c051088
+          gist_title: tdbooster-output
+          gist_description: Example Gist Description
+          github_file: output      
