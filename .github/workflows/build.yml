@@ -64,18 +64,14 @@ jobs:
         run: |
           chmod +x ./tdbooster.exe
           ./tdbooster.exe -r -o . -f sh.600585 > output
-          
-      - name: push file
-        env:
-          SECRET: ${{ secrets.TD }}
-        run: |
-          git clone https://.:$SECRET@github.com/RCmerci/tdbooster-output.git
-          git config --global user.email "rcmerci@gmail.com"
-          git config --global user.name "RCmerci"
-          cd tdbooster-output
-          cp ../output output
-          git add output
-          git commit -m "Automatic publish from tdbooster repo action"
-          git push https://.:$SECRET@github.com/RCmerci/tdbooster-output.git -v
+      - name: Copy
+        uses: andstor/copycat-action@v3
+        with:
+          personal_token: ${{ secrets.TD }}
+          src_path: output
+          dst_path: output
+          dst_owner: RCmerci
+          dst_repo_name: tdbooster-output
+
 
 
