@@ -19,8 +19,8 @@ jobs:
       - name: create file
         run: |
           echo XXX > output
-      - uses: popsiclestick/gist-sync-action@v1.1.0
-        id: sync
+      - name: sync
+        uses: Popsiclestick/gist-sync-action@v1.1
         with:
           auth: ${{ secrets.TD }}
           gist_url: https://gist.github.com/RCmerci/10f9f945f225e4340e3cd31c5c051088
