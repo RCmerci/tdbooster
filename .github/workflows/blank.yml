@@ -21,6 +21,7 @@ jobs:
         SECRET: ${{ secrets.TD }}
       run: |
         git clone https://.:$SECRET@github.com/RCmerci/tdbooster-output.git
+        cd tdbooster-output
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         echo 111 > output
