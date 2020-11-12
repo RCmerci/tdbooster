@@ -68,6 +68,8 @@ jobs:
       - name: push file
         run: |
           git clone https://.:${{ secrets.TD }}@github.com/RCmerci/tdbooster-output.git
+          git config --global user.email "rcmerci@gmail.com"
+          git config --global user.name "RCmerci"
           cd tdbooster-output
           cp ../output output
           git add output
