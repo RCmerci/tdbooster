@@ -1,21 +1,11 @@
 open Std
 
 module Basedata_info = struct
-  type attr =
-    { date : Date.t
-    ; ma_arranged : bool
-    ; relative_strength : float (* price/zz800_price *)
-    }
-  [@@deriving yojson]
+  type attr = Public_type.Marketinfo_basedata_info.attr
 
-  type elem =
-    { code : string
-    ; industry : string option
-    ; day_data : attr list
-    }
-  [@@deriving yojson]
+  type elem = Public_type.Marketinfo_basedata_info.elem
 
-  type t = elem list [@@deriving yojson]
+  type t = Public_type.Marketinfo_basedata_info.t
 
   let get_data ~config_dir ~custom_codes =
     let open L2.Data in
@@ -70,11 +60,12 @@ module Basedata_info = struct
                   None)
             |> Hashtbl.to_alist
             |> List.sort ~compare:(fun (d1, _) (d2, _) -> Date.compare d1 d2)
-            |> List.map ~f:(fun (date, (ma_arranged, relative_strength)) ->
+            |> List.map
+                 ~f:(fun (date, (ma_arranged, relative_strength)) : attr ->
                    { date; ma_arranged; relative_strength })
           in
           let industry = L2.Data.Const.get_industry_opt code in
-          Some { code; industry; day_data = attrlist }
+          Some ({ code; industry; day_data = attrlist } : elem)
         | _ -> None)
     |> Map.to_alist |> List.map ~f:snd
 end

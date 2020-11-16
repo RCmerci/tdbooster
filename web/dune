@@ -1,0 +1,23 @@
+(executables
+ (names main)
+ (libraries js_of_ocaml-lwt core_kernel public_type)
+ (modes byte)
+ (preprocess (pps js_of_ocaml-ppx js_of_ocaml-ppx_deriving_json ppx_deriving_yojson)))
+
+(rule
+ (targets main.js)
+ (action
+  (run %{bin:js_of_ocaml}
+    +base/base_internalhash_types/runtime.js
+    +base/runtime.js
+    +time_now/runtime.js
+    +bin_prot/runtime.js
+    +ppx_expect/collector/runtime.js
+    +base_bigstring/runtime.js
+    +core_kernel/strftime.js
+    +core_kernel/runtime.js
+    --source-map %{dep:main.bc} -o %{targets} --pretty)))
+
+(alias
+ (name default)
+ (deps main.js index.html))

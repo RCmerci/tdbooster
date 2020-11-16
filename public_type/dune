@@ -1,0 +1,4 @@
+(library
+ (name public_type)
+ (libraries core_kernel ppx_deriving_yojson.runtime)
+ (preprocess (pps ppx_deriving_yojson)))

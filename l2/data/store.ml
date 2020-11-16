@@ -4,7 +4,8 @@ open Sqlite3
 type raw_data_list = L1.Loader.Type.raw_data
 
 let db_delete ~config_dir =
-  try Unix.remove (Filename.concat config_dir "tdbooster.db") with _ -> ()
+  try Caml_unix.unlink (Filename.concat config_dir "tdbooster.db")
+  with _ -> ()
 
 let db_open ~config_dir =
   Sqlite3.db_open (Filename.concat config_dir "tdbooster.db")

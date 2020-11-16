@@ -2,5 +2,5 @@
  (name        tdbooster)
  (public_name tdbooster)
  (package     tdbooster)
- (libraries   core ppx_deriving_yojson.runtime score util l3)
+ (libraries   core score util l3 public_type)
  (preprocess (pps ppx_jane ppx_deriving_yojson)))

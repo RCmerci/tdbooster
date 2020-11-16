@@ -1,21 +1,5 @@
 open Std
-
-(* (string * float) list: (date, num) list *)
-type marketinfo =
-  { title : string
-  ; data : (Date.t * float) list
-  }
-[@@deriving to_yojson]
-
-type output =
-  { data : L3.Marketinfo.Basedata_info.t
-  ; marketinfo : marketinfo list
-  ; (* code date data *)
-    industry_trend : L3.Marketinfo.Industry_trend_info.t
-  }
-[@@deriving to_yojson]
-
-type title = string [@@deriving to_yojson]
+open Public_type
 
 let marketinfo config_dir =
   let open L3.Marketinfo.Other_info in
