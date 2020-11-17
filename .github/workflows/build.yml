@@ -35,13 +35,24 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: build
-        run: opam exec -- dune build
+        run: |
+          opam exec -- dune build
+          opam exec -- dune build @web/default
       
       - name: upload-bin
         uses: actions/upload-artifact@v2.2.0
         with:
           name: tdbooster.exe
           path: _build/default/tdbooster.exe
+          
+      - name: sync main-js gist
+        uses: Popsiclestick/gist-sync-action@v1.1
+        with:
+          auth: ${{ secrets.TD }}
+          gist_url: https://gist.github.com/RCmerci/58a81f8ebff751bc99b68904531ce138
+          gist_title: main.js
+          gist_description: main.js
+          github_file: _build/default/web/main.js
 
   run:
     needs: [build]
