@@ -27,3 +27,14 @@
   cohttp-lwt-unix
   shexp)
   (synopsis "Tdbooster"))
+
+(package
+ (name tdbooster-web)
+ (depends
+  (ocaml (>= 4.10))
+  core_kernel
+  js_of_ocaml-lwt
+  ppx_deriving_yojson
+  yojson
+  lwt)
+  (synopsis "Tdbooster-web"))
