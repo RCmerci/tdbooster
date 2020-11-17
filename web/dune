@@ -2,7 +2,7 @@
  (names main)
  (libraries js_of_ocaml-lwt core_kernel public_type)
  (modes byte)
- (preprocess (pps js_of_ocaml-ppx js_of_ocaml-ppx_deriving_json ppx_deriving_yojson)))
+ (preprocess (pps js_of_ocaml-ppx ppx_deriving_yojson)))
 
 (rule
  (targets main.js)
