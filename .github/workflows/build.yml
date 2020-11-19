@@ -38,6 +38,7 @@ jobs:
         run: |
           opam exec -- dune build
           opam exec -- dune build @web/default
+          make web
       
       - name: upload-bin
         uses: actions/upload-artifact@v2.2.0
@@ -52,7 +53,7 @@ jobs:
           gist_url: https://gist.github.com/RCmerci/58a81f8ebff751bc99b68904531ce138
           gist_title: main.js
           gist_description: main.js
-          github_file: _build/default/web/main.js
+          github_file: main.js
 
   run:
     needs: [build]
