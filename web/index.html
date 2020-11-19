@@ -2,7 +2,14 @@
   <head>
     <title>tdbooster</title>
   </head>
-  <script type="text/javascript" src="https://gist.githubusercontent.com/RCmerci/58a81f8ebff751bc99b68904531ce138/raw"></script>
+  <!-- <script  src="file:///Users/rcmerci/github/tdbooster/_build/default/web/main.js"> -->
+  <script>
+    var sScriptURL ='https://gist.githubusercontent.com/RCmerci/58a81f8ebff751bc99b68904531ce138/raw/main.js';
+    var oReq = new XMLHttpRequest();
+    oReq.addEventListener("load",
+       function fLoad() {eval(this.responseText + '\r\n//# sourceURL=' + sScriptURL)});
+    oReq.open("GET", sScriptURL); oReq.send(); false;
+  </script>
   <body id="body">
 
   </body>

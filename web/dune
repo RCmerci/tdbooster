@@ -16,7 +16,7 @@
     +base_bigstring/runtime.js
     +core_kernel/strftime.js
     +core_kernel/runtime.js
-    --source-map %{dep:main.bc} -o %{targets} --pretty)))
+    %{dep:main.bc} -o %{targets})))
 
 (alias
  (name default)

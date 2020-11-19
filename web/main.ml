@@ -3,7 +3,7 @@ open! Js_of_ocaml_lwt
 open Lwt.Infix
 open! Core_kernel
 
-let get_gist_updated_time =
+let get_gist_updated_time () =
   XmlHttpRequest.get
     "https://api.github.com/gists/10f9f945f225e4340e3cd31c5c051088"
   >>= fun r ->
@@ -11,7 +11,7 @@ let get_gist_updated_time =
   let json = Yojson.Safe.from_string c in
   Lwt.return Yojson.Safe.Util.(member "updated_at" json |> to_string)
 
-let get_tdbooster_output_gist =
+let get_tdbooster_output_gist () =
   XmlHttpRequest.get
     "https://gist.githubusercontent.com/RCmerci/10f9f945f225e4340e3cd31c5c051088/raw"
   >>= fun r ->
@@ -43,20 +43,16 @@ let start _ =
   let body =
     Js.Opt.get (d##getElementById (Js.string "body")) (fun () -> assert false)
   in
-  get_tdbooster_output_gist >>= fun output ->
+  get_tdbooster_output_gist () >>= fun output ->
   let title =
     "" :: List.init (List.length output.industry_trend) ~f:Int.to_string
   in
   let cols = industry_trend_cols output.industry_trend in
   let table = Table.createTable d title cols in
-  get_gist_updated_time >>= fun updated_at ->
+  get_gist_updated_time () >>= fun updated_at ->
   let updatetime = Dom_html.createH6 d in
   Dom.appendChild updatetime (d##createTextNode (Js.string updated_at));
   Dom.appendChild body updatetime;
   Lwt.return (Dom.appendChild body table)
 
-let _ =
-  Dom_html.window##.onload :=
-    Dom_html.handler (fun _ ->
-        ignore (start ());
-        Js._false)
+let _ = ignore (start ())
