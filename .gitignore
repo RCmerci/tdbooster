@@ -3,3 +3,4 @@ _build/
 /tdbooster.install
 /.DS_Store
 *.db
+main.js
