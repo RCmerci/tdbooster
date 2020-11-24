@@ -24,6 +24,7 @@ module Condition = struct
     | Rel20 of float
     | Rel60 of float
     | Rel120 of float
+  [@@deriving show]
 
   type dateSelector =
     | DateGE of Date.t
@@ -35,6 +36,21 @@ module Condition = struct
     | DateBetweenET of (Date.t * Date.t)
     | DateBetweenTT of (Date.t * Date.t)
 
+  let dateSelector_to_string ds =
+    match ds with
+    | DateGE d -> ">= " ^ Date.to_string d
+    | DateLE d -> "<= " ^ Date.to_string d
+    | DateGT d -> "> " ^ Date.to_string d
+    | DateLT d -> "< " ^ Date.to_string d
+    | DateBetweenTE (d1, d2) ->
+      "between (" ^ Date.to_string d1 ^ "," ^ Date.to_string d2 ^ ")"
+    | DateBetweenEE (d1, d2) ->
+      "between (" ^ Date.to_string d1 ^ "," ^ Date.to_string d2 ^ ")"
+    | DateBetweenET (d1, d2) ->
+      "between (" ^ Date.to_string d1 ^ "," ^ Date.to_string d2 ^ ")"
+    | DateBetweenTT (d1, d2) ->
+      "between (" ^ Date.to_string d1 ^ "," ^ Date.to_string d2 ^ ")"
+
   type simple = private Simple_t_not_used
 
   type combine = private Combine_t_not_used
@@ -45,6 +61,19 @@ module Condition = struct
     | LE : (dateSelector * index) -> simple t
     | GT : (dateSelector * index) -> simple t
     | GE : (dateSelector * index) -> simple t
+
+  let rec to_string : type a. a t -> string =
+   fun t ->
+    match t with
+    | LT (ds, i) ->
+      Printf.sprintf "[%s : < %s]" (dateSelector_to_string ds) (show_index i)
+    | LE (ds, i) ->
+      Printf.sprintf "[%s : <= %s]" (dateSelector_to_string ds) (show_index i)
+    | GT (ds, i) ->
+      Printf.sprintf "[%s : > %s]" (dateSelector_to_string ds) (show_index i)
+    | GE (ds, i) ->
+      Printf.sprintf "[%s : >= %s]" (dateSelector_to_string ds) (show_index i)
+    | AND ts -> List.map ts ~f:to_string |> String.concat ~sep:" & "
 
   let index_to_name_string i =
     match i with

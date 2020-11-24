@@ -1,4 +1,4 @@
 (library
  (name l3)
- (libraries util l2 ppx_deriving_yojson.runtime public_type)
+ (libraries util l2 ppx_deriving_yojson.runtime public_type backtest)
  (preprocess (pps ppx_deriving_yojson)))

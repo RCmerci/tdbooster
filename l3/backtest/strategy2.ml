@@ -9,17 +9,17 @@ let create ~config_dir =
 
 let of_db db = { db }
 
+let condition date =
+  L2.Data.Op.Condition.(
+    AND
+      [ LE (DateBetweenEE (date, date), Rsi6 20.)
+      ; GT (DateBetweenEE (date, date), Rel20 0.)
+      ; LT (DateBetweenEE (date, date), Rel120 (-10.))
+      ])
+
 let search (t : t) codes date =
   L2.Data.Op.(
-    search
-      { db = t.db; dwm = `DAY; custom_codes = [] }
-      ~codes
-      Condition.(
-        AND
-          [ LE (DateBetweenEE (date, date), Rsi6 20.)
-          ; GT (DateBetweenEE (date, date), Rel20 0.)
-          ; LT (DateBetweenEE (date, date), Rel120 (-10.))
-          ]))
+    search { db = t.db; dwm = `DAY; custom_codes = [] } ~codes (condition date))
 
 let eval (state : state) custom_codes =
   let lastday = lastday state in

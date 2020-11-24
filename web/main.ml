@@ -38,6 +38,20 @@ let industry_trend_cols
   in
   List.map cols' ~f:List.rev
 
+let build_search_info d search_info =
+  let div = Dom_html.createDiv d in
+  List.iter search_info ~f:(fun (info : Public_type.search_info) ->
+      let div' = Dom_html.createDiv d in
+      let case = Dom_html.createH5 d in
+      Dom.appendChild case (d##createTextNode (Js.string info.case));
+      let codes = Dom_html.createH6 d in
+      Dom.appendChild codes
+        (d##createTextNode (Js.string (String.concat ~sep:" " info.codes)));
+      Dom.appendChild div' case;
+      Dom.appendChild div' codes;
+      Dom.appendChild div div');
+  div
+
 let start _ =
   let d = Dom_html.document in
   let body =
@@ -53,6 +67,12 @@ let start _ =
   let updatetime = Dom_html.createH6 d in
   Dom.appendChild updatetime (d##createTextNode (Js.string updated_at));
   Dom.appendChild body updatetime;
-  Lwt.return (Dom.appendChild body table)
+  Dom.appendChild body table;
+  let br = Dom_html.createBr d in
+  Dom.appendChild body br;
+  Dom.appendChild body br;
+  let search_info = build_search_info d output.search_info in
+  Dom.appendChild body search_info;
+  Lwt.return ()
 
 let _ = ignore (start ())

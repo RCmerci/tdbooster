@@ -34,6 +34,12 @@ module Marketinfo_industry_trend_info = struct
   type t = (string * (Date.t * float) list) list [@@deriving yojson]
 end
 
+type search_info =
+  { case : string
+  ; codes : string list
+  }
+[@@deriving yojson]
+
 (* (string * float) list: (date, num) list *)
 type marketinfo =
   { title : string
@@ -46,5 +52,6 @@ type output =
   ; marketinfo : marketinfo list
   ; (* code date data *)
     industry_trend : Marketinfo_industry_trend_info.t
+  ; search_info : search_info list
   }
 [@@deriving yojson]
