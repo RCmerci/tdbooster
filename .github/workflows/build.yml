@@ -76,6 +76,12 @@ jobs:
         run: |
           chmod +x ./tdbooster.exe
           ./tdbooster.exe -r -o . -f sh.600585 > output
+
+      - name: db
+        uses: actions/upload-artifact@v2.2.0
+        with:
+          name: tdbooster.db
+          path: tdbooster.db
           
       - name: sync gist
         uses: Popsiclestick/gist-sync-action@v1.1
