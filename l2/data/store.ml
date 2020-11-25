@@ -11,7 +11,8 @@ let db_open ~config_dir =
   Sqlite3.db_open (Filename.concat config_dir "tdbooster.db")
 
 let all_codes ~custom_codes =
-  List.concat [ custom_codes; Const.industry_code_list; Const.common_codes ]
+  List.concat
+    [ custom_codes; Const.industry_code_list; Const.common_codes; Const.hs300 ]
   |> List.stable_dedup
 
 module ReadCodesBaseData : sig

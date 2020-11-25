@@ -200,7 +200,11 @@ let search t ?codes cond =
           where_clause
       in
       let found = ref false in
-      Sqlite3.exec_not_null_no_headers t.db count_sql ~cb:(fun count ->
-          if int_of_string count.(0) > 0 then found := true)
-      |> Sqlite3.Rc.check;
+      ( try
+          Sqlite3.exec_not_null_no_headers t.db count_sql ~cb:(fun count ->
+              if int_of_string count.(0) > 0 then found := true)
+          |> Sqlite3.Rc.check
+        with
+      | Sqlite3.SqliteError e -> failwithf "%s: %s" e count_sql ()
+      | _ -> () );
       !found)
