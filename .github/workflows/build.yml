@@ -75,7 +75,7 @@ jobs:
       - name: run
         run: |
           chmod +x ./tdbooster.exe
-          ./tdbooster.exe -r -o . -f sh.600585 > output
+          ./tdbooster.exe -r -o .  -f sz.300015 -f sh.600000 -f sh.600703 -f sh.600547 -f sh.600009 -f sz.000895 -f sh.600900 -f sh.601318 -f sh.600690 -f sh.601012 -f sz.300498 -f sz.002304 -f sz.001979 -f sz.000063 -f sh.603160 -f sh.601888 -f sz.000725 -f sh.600048 -f sh.600585 -f sh.601601 -f sh.600104 -f sz.002475 -f sh.601088 -f sz.000002 -f sh.603288 -f sz.002415 -f sz.000651 -f sh.600276 -f sh.600028 -f sz.000858 -f sh.601628 -f sh.600036 -f sh.600519 -f sz.000333 -f sh.600031 -f sh.600030 > output
 
       - name: db
         uses: actions/upload-artifact@v2.2.0

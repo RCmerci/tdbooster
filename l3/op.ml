@@ -33,11 +33,10 @@ module type SeatchS = sig
   val condition : Date.t -> L2.Data.Op.Condition.combine L2.Data.Op.Condition.t
 end
 
-let search ?date ?codes ~config_dir (module BacktestStrategy : SeatchS) =
+let search ?date ~codes ~config_dir (module BacktestStrategy : SeatchS) =
   let date' =
     Option.value date
       ~default:(Date.today ~zone:(Time.Zone.of_utc_offset ~hours:8))
   in
-  let codes' = Option.value codes ~default:L2.Data.Const.hs300 in
   let t = BacktestStrategy.create ~config_dir in
-  BacktestStrategy.search t codes' date'
+  BacktestStrategy.search t codes date'
